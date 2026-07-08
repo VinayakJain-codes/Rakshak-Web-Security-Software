@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Rakshak Security | Super Admin Dashboard</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed-variant": "#5c4870",
+                        "error-dim": "#67040d",
+                        "secondary-fixed": "#dce2f9",
+                        "tertiary-fixed-dim": "#d3bae9",
+                        "surface": "#faf8fe",
+                        "surface-container-high": "#e7e7f1",
+                        "secondary-fixed-dim": "#ced4eb",
+                        "primary-fixed-dim": "#abbdf0",
+                        "on-error": "#fff7f6",
+                        "error": "#a83836",
+                        "tertiary-dim": "#5e4b73",
+                        "outline-variant": "#b0b1bc",
+                        "on-tertiary": "#fff6ff",
+                        "on-primary-container": "#30436e",
+                        "inverse-on-surface": "#9d9ca2",
+                        "background": "#faf8fe",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-container": "#b9cbff",
+                        "tertiary-container": "#e1c8f8",
+                        "on-secondary-fixed": "#383f51",
+                        "on-secondary-fixed-variant": "#555b6e",
+                        "on-surface-variant": "#5d5f68",
+                        "primary-dim": "#40527e",
+                        "on-error-container": "#6e0a12",
+                        "surface-container-low": "#f3f3fa",
+                        "on-surface": "#30323a",
+                        "on-tertiary-fixed": "#3e2c52",
+                        "secondary-dim": "#4c5366",
+                        "tertiary-fixed": "#e1c8f8",
+                        "secondary-container": "#dce2f9",
+                        "on-primary-fixed-variant": "#3a4c78",
+                        "on-secondary-container": "#4b5164",
+                        "on-background": "#30323a",
+                        "on-primary-fixed": "#1b2f59",
+                        "on-secondary": "#f9f8ff",
+                        "inverse-primary": "#b9cbff",
+                        "tertiary": "#6b5780",
+                        "surface-bright": "#faf8fe",
+                        "surface-container-highest": "#e1e2ed",
+                        "primary-fixed": "#b9cbff",
+                        "outline": "#787a84",
+                        "on-tertiary-container": "#523f67",
+                        "surface-variant": "#e1e2ed",
+                        "primary": "#4c5e8b",
+                        "on-primary": "#f9f8ff",
+                        "error-container": "#fa746f",
+                        "surface-container": "#ededf6",
+                        "secondary": "#585f72",
+                        "inverse-surface": "#0d0e12",
+                        "surface-tint": "#4c5e8b"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "display": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Public Sans"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        .font-label { font-family: 'Public Sans', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #b0b1bc; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #787a84; }
+    </style>
+</head>
+<body class="bg-background text-on-background selection:bg-primary-container selection:text-on-primary-container">
+<!-- SideNavBar Shell -->
+<aside class="fixed left-0 top-0 h-full flex flex-col w-64 z-40 bg-surface-container-low border-r border-outline-variant shadow-sm">
+<div class="p-6">
+<h1 class="text-lg font-headline font-bold text-on-surface">Rakshak Admin</h1>
+<p class="text-xs text-on-surface-variant font-label opacity-70">System Oversight</p>
+</div>
+<nav class="flex-1 mt-4 space-y-1">
+<!-- Active Tab: MRR/ARR Dashboard -->
+<a class="flex items-center gap-3 bg-primary-container text-on-primary-container rounded-lg px-4 py-3 mx-2 active:scale-95 duration-150 transition-all font-label text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+<span>MRR/ARR Dashboard</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 mx-2 hover:bg-surface-container-highest active:scale-95 duration-150 transition-all font-label text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="domain_add">domain_add</span>
+<span>Tenant Registration</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 mx-2 hover:bg-surface-container-highest active:scale-95 duration-150 transition-all font-label text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="support_agent">support_agent</span>
+<span>Global Support</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 mx-2 hover:bg-surface-container-highest active:scale-95 duration-150 transition-all font-label text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+<span>Audit Logs</span>
+</a>
+</nav>
+<div class="mt-auto border-t border-outline-variant p-2 space-y-1">
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-highest rounded-lg transition-all font-label text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span>Help Center</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-highest rounded-lg transition-all font-label text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="check_circle">check_circle</span>
+<span>System Status</span>
+</a>
+</div>
+</aside>
+<!-- TopNavBar Shell -->
+<header class="sticky top-0 z-50 flex justify-between items-center px-6 py-3 w-[calc(100%-16rem)] ml-64 bg-surface border-b border-outline-variant">
+<div class="flex items-center gap-6">
+<span class="text-xl font-headline font-black text-primary uppercase tracking-tighter">Rakshak Security</span>
+<div class="relative group">
+<span class="absolute inset-y-0 left-3 flex items-center text-outline pointer-events-none">
+<span class="material-symbols-outlined text-sm" data-icon="search">search</span>
+</span>
+<input class="bg-surface-container-low border-none rounded-full pl-10 pr-4 py-1.5 text-sm w-64 focus:ring-2 focus:ring-primary-container transition-all" placeholder="Global system search..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors active:opacity-80">
+<span class="material-symbols-outlined" data-icon="dark_mode">dark_mode</span>
+</button>
+<button class="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors active:opacity-80 relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors active:opacity-80">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="ml-2 w-8 h-8 rounded-full overflow-hidden border border-outline-variant cursor-pointer active:opacity-80">
+<img class="w-full h-full object-cover" data-alt="Professional studio portrait of a corporate technology administrator in a high-tech minimalist environment. The background features subtle blue and white neon light patterns consistent with the Rakshak Security brand colors. The subject is wearing business casual attire with a focus on a clean, reliable, and authoritative persona suitable for a Super Admin role." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqekRntu7YXJcGLOGFjEZtMZ9WErck3jxd4IqYFoTlItPTKToXhWS6xbIXE82dxa5yPHpMCR97XB5GHD8jtcLXIq_FaU_tTQU9WeQypFnPq_DdJLVYM6dvh4cwx5nuTrsEwpqIiWTknKLZxuFoxRcphVCiqZ7zYW8QmK9R1KDscv7BY_ZB6sD_w1W7FfDcU11QpK-_pw4J95ZXkn9kNEN_B0jMuIl8ZlbNlIwdy3UoCct2XNmGTqu6T_z5HenQhwF2n80A4L8todpG"/>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-64 p-8 min-h-screen">
+<header class="mb-8">
+<h2 class="text-2xl font-headline font-bold text-on-surface">System Overview</h2>
+<p class="text-on-surface-variant font-label">Real-time health and financial telemetry for Rakshak Infrastructure.</p>
+</header>
+<!-- KPI Grid -->
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+<!-- MRR -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-outline-variant hover:shadow-md transition-shadow group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-primary-container text-on-primary-container rounded-lg">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+</div>
+<span class="text-xs font-bold px-2 py-1 bg-primary-container/20 text-primary rounded-full">+5% YoY</span>
+</div>
+<h3 class="text-on-surface-variant font-label text-sm uppercase tracking-wider font-semibold">MRR</h3>
+<p class="text-3xl font-headline font-black text-on-surface mt-1">$1.2M</p>
+<div class="mt-4 w-full h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[85%]"></div>
+</div>
+</div>
+<!-- ARR -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-outline-variant hover:shadow-md transition-shadow group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-tertiary-container text-on-tertiary-container rounded-lg">
+<span class="material-symbols-outlined" data-icon="account_balance">account_balance</span>
+</div>
+<span class="text-xs font-bold px-2 py-1 bg-tertiary-container/20 text-tertiary rounded-full">+8% YoY</span>
+</div>
+<h3 class="text-on-surface-variant font-label text-sm uppercase tracking-wider font-semibold">ARR</h3>
+<p class="text-3xl font-headline font-black text-on-surface mt-1">$14.4M</p>
+<div class="mt-4 w-full h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="bg-tertiary h-full w-[92%]"></div>
+</div>
+</div>
+<!-- Active Tenants -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-outline-variant hover:shadow-md transition-shadow group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-secondary-container text-on-secondary-container rounded-lg">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+</div>
+<span class="text-xs font-bold px-2 py-1 bg-secondary-container/20 text-secondary rounded-full">+12% MoM</span>
+</div>
+<h3 class="text-on-surface-variant font-label text-sm uppercase tracking-wider font-semibold">Active Tenants</h3>
+<p class="text-3xl font-headline font-black text-on-surface mt-1">1,240</p>
+<div class="mt-4 w-full h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="bg-secondary h-full w-[78%]"></div>
+</div>
+</div>
+<!-- Open Tickets -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-outline-variant hover:shadow-md transition-shadow group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-error-container/20 text-error rounded-lg border border-error/10">
+<span class="material-symbols-outlined" data-icon="confirmation_number">confirmation_number</span>
+</div>
+<span class="text-xs font-bold px-2 py-1 bg-error-container text-on-error-container rounded-full">-2% today</span>
+</div>
+<h3 class="text-on-surface-variant font-label text-sm uppercase tracking-wider font-semibold">Open Tickets</h3>
+<p class="text-3xl font-headline font-black text-on-surface mt-1">84</p>
+<div class="mt-4 w-full h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="bg-error h-full w-[35%]"></div>
+</div>
+</div>
+</section>
+<!-- Audit Logs Section -->
+<section class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant overflow-hidden">
+<div class="px-6 py-4 border-b border-outline-variant flex justify-between items-center bg-surface-container-low/50">
+<h3 class="text-lg font-headline font-bold text-on-surface">Recent System-Wide Audit Logs</h3>
+<div class="flex gap-2">
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-outline text-xs font-semibold hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[16px]" data-icon="filter_list">filter_list</span>
+                        Filter
+                    </button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-on-primary text-xs font-semibold hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[16px]" data-icon="download">download</span>
+                        Export CSV
+                    </button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left font-label text-sm">
+<thead>
+<tr class="bg-surface-container-high/30 text-on-surface-variant">
+<th class="px-6 py-4 font-semibold uppercase text-[10px] tracking-widest">Timestamp</th>
+<th class="px-6 py-4 font-semibold uppercase text-[10px] tracking-widest">Actor</th>
+<th class="px-6 py-4 font-semibold uppercase text-[10px] tracking-widest">Action</th>
+<th class="px-6 py-4 font-semibold uppercase text-[10px] tracking-widest">Resource</th>
+<th class="px-6 py-4 font-semibold uppercase text-[10px] tracking-widest">IP Address</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4 text-on-surface font-mono text-xs">2023-10-27 14:30:05</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-[10px] font-bold">AD</div>
+<span>admin@rakshak.io</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 rounded bg-secondary-container text-on-secondary-container text-[10px] font-bold">LOGIN_SUCCESS</span>
+</td>
+<td class="px-6 py-4 text-on-surface-variant">Global Config</td>
+<td class="px-6 py-4 font-mono text-xs text-on-surface-variant">192.168.1.45</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4 text-on-surface font-mono text-xs">2023-10-27 14:28:12</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center text-[10px] font-bold">SA</div>
+<span>sys_agent_04</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 rounded bg-primary-container text-on-primary-container text-[10px] font-bold">TENANT_CREATED</span>
+</td>
+<td class="px-6 py-4 text-on-surface-variant">Tenant_482</td>
+<td class="px-6 py-4 font-mono text-xs text-on-surface-variant">10.0.0.122</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4 text-on-surface font-mono text-xs">2023-10-27 14:25:44</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center text-[10px] font-bold">MK</div>
+<span>m.kumar@rakshak.io</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 rounded bg-error-container text-on-error-container text-[10px] font-bold">ACCESS_DENIED</span>
+</td>
+<td class="px-6 py-4 text-on-surface-variant">Billing_Vault_PROD</td>
+<td class="px-6 py-4 font-mono text-xs text-on-surface-variant">172.16.254.1</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4 text-on-surface font-mono text-xs">2023-10-27 14:22:19</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-outline-variant text-on-surface flex items-center justify-center text-[10px] font-bold">RB</div>
+<span>root_backup</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 rounded bg-surface-variant text-on-surface-variant text-[10px] font-bold">DB_BACKUP_INIT</span>
+</td>
+<td class="px-6 py-4 text-on-surface-variant">RDS_Cluster_East</td>
+<td class="px-6 py-4 font-mono text-xs text-on-surface-variant">Internal VPC</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4 text-on-surface font-mono text-xs">2023-10-27 14:15:02</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-[10px] font-bold">AD</div>
+<span>admin@rakshak.io</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 rounded bg-secondary-container text-on-secondary-container text-[10px] font-bold">POLICY_UPDATED</span>
+</td>
+<td class="px-6 py-4 text-on-surface-variant">Firewall_Standard_V3</td>
+<td class="px-6 py-4 font-mono text-xs text-on-surface-variant">192.168.1.45</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="px-6 py-4 border-t border-outline-variant flex justify-between items-center text-xs font-label text-on-surface-variant">
+<span>Showing 1-5 of 1,245 log entries</span>
+<div class="flex gap-1">
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-container-high transition-colors disabled:opacity-30" disabled="">
+<span class="material-symbols-outlined text-sm" data-icon="chevron_left">chevron_left</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded bg-primary text-on-primary font-bold">1</button>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-container-high transition-colors font-bold">2</button>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-container-high transition-colors font-bold">3</button>
+<span class="px-1 py-2">...</span>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Asymmetric Detail Section (Bento Inspired) -->
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-10">
+<div class="lg:col-span-2 bg-gradient-to-br from-primary to-primary-dim p-8 rounded-2xl text-on-primary flex items-center justify-between relative overflow-hidden group">
+<div class="relative z-10">
+<h4 class="text-xl font-bold mb-2">Platform Integrity Status</h4>
+<p class="max-w-md opacity-80 mb-6">All global security nodes are currently reporting optimal latency and 100% firewall uptime. No anomalous traffic patterns detected in the last 24 hours.</p>
+<div class="flex gap-4">
+<div class="flex flex-col">
+<span class="text-xs opacity-60 uppercase font-black tracking-tighter">Avg Latency</span>
+<span class="text-2xl font-black">24ms</span>
+</div>
+<div class="w-[1px] h-10 bg-on-primary/20"></div>
+<div class="flex flex-col">
+<span class="text-xs opacity-60 uppercase font-black tracking-tighter">Throughput</span>
+<span class="text-2xl font-black">4.2 TB/s</span>
+</div>
+</div>
+</div>
+<div class="absolute right-[-20px] top-[-20px] opacity-10 group-hover:rotate-12 transition-transform duration-700">
+<span class="material-symbols-outlined text-[200px]" data-icon="shield_with_heart" style="font-variation-settings: 'FILL' 1;">shield_with_heart</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant flex flex-col justify-center">
+<h4 class="text-on-surface font-bold mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="bolt">bolt</span>
+                    System Health
+                </h4>
+<div class="space-y-4">
+<div class="flex justify-between items-center text-sm font-label">
+<span class="text-on-surface-variant">API Gateway</span>
+<span class="text-green-600 font-bold">Operational</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="bg-green-500 h-full w-full"></div>
+</div>
+<div class="flex justify-between items-center text-sm font-label">
+<span class="text-on-surface-variant">Auth Service</span>
+<span class="text-green-600 font-bold">Operational</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="bg-green-500 h-full w-full"></div>
+</div>
+<div class="flex justify-between items-center text-sm font-label">
+<span class="text-on-surface-variant">Elasticsearch Cluster</span>
+<span class="text-primary font-bold">Heavy Load</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[88%]"></div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<script>
+        // Micro-interactions and effects
+        document.querySelectorAll('button, a').forEach(elem => {
+            elem.addEventListener('mousedown', () => {
+                elem.classList.add('scale-95');
+            });
+            elem.addEventListener('mouseup', () => {
+                elem.classList.remove('scale-95');
+            });
+            elem.addEventListener('mouseleave', () => {
+                elem.classList.remove('scale-95');
+            });
+        });
+
+        // Simulating some real-time data update visuals
+        setInterval(() => {
+            const mrrValue = document.querySelector('p.text-3xl');
+            if(mrrValue) {
+                mrrValue.classList.add('transition-opacity', 'opacity-50');
+                setTimeout(() => mrrValue.classList.remove('opacity-50'), 200);
+            }
+        }, 8000);
+    </script>
+</body></html>

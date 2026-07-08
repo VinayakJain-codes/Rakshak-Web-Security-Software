@@ -1,0 +1,171 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: transparent;
+    --on-background: #30323a;
+    
+    /* Semi-transparent surface colors for glassmorphism */
+    --surface: rgba(253, 251, 247, 0.7);
+    --surface-container-lowest: rgba(255, 255, 255, 0.85);
+    --surface-container-low: rgba(244, 242, 236, 0.6);
+    --surface-container: rgba(237, 236, 230, 0.5);
+    --surface-container-high: rgba(231, 229, 223, 0.6);
+    --surface-container-highest: rgba(225, 226, 237, 0.7);
+    
+    --on-surface: #30323a;
+    --on-surface-variant: #5d5f68;
+    
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --success-container: rgba(220, 252, 231, 0.8);
+    --warning-container: rgba(254, 243, 199, 0.8);
+    
+    --primary: #4c5e8b;
+    --on-primary: #f9f8ff;
+    --primary-container: rgba(185, 203, 255, 0.8);
+    --on-primary-container: #30436e;
+    
+    --secondary: #585f72;
+    --on-secondary: #f9f8ff;
+    --secondary-container: rgba(220, 226, 249, 0.8);
+    --on-secondary-container: #4b5164;
+    
+    --error: #a83836;
+    --on-error: #fff7f6;
+    --error-container: rgba(250, 116, 111, 0.8);
+    --on-error-container: #6e0a12;
+    
+    --outline: rgba(120, 122, 132, 0.3);
+    --outline-variant: rgba(176, 177, 188, 0.2);
+  }
+
+  .dark {
+    --background: transparent;
+    --on-background: #e1e2ed;
+    
+    /* Dark semi-transparent surfaces */
+    --surface: rgba(13, 14, 18, 0.7);
+    --surface-container-lowest: rgba(8, 9, 11, 0.85);
+    --surface-container-low: rgba(27, 28, 33, 0.6);
+    --surface-container: rgba(31, 32, 38, 0.5);
+    --surface-container-high: rgba(42, 43, 50, 0.6);
+    --surface-container-highest: rgba(48, 50, 58, 0.7);
+    
+    --on-surface: #e1e2ed;
+    --on-surface-variant: #9d9ca2;
+    
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --success-container: rgba(20, 83, 45, 0.8);
+    --warning-container: rgba(120, 53, 15, 0.8);
+    
+    --primary: #b9cbff;
+    --on-primary: #1b2f59;
+    --primary-container: rgba(48, 67, 110, 0.8);
+    --on-primary-container: #dce2f9;
+    
+    --secondary: #cdd3eb;
+    --on-secondary: #2a3141;
+    --secondary-container: rgba(64, 71, 89, 0.8);
+    --on-secondary-container: #e9efff;
+    
+    --error: #ffb4ab;
+    --on-error: #690005;
+    --error-container: rgba(147, 0, 10, 0.8);
+    --on-error-container: #ffdad6;
+    
+    --outline: rgba(147, 149, 159, 0.3);
+    --outline-variant: rgba(73, 74, 83, 0.3);
+  }
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-on-background: var(--on-background);
+  --color-surface: var(--surface);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container-highest: var(--surface-container-highest);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container: var(--surface-container);
+  
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+  
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary-container: var(--on-primary-container);
+  
+  --color-secondary: var(--secondary);
+  --color-on-secondary: var(--on-secondary);
+  --color-secondary-container: var(--secondary-container);
+  --color-on-secondary-container: var(--on-secondary-container);
+  
+  --color-error: var(--error);
+  --color-on-error: var(--on-error);
+  --color-error-container: var(--error-container);
+  --color-on-error-container: var(--on-error-container);
+  
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-success-container: var(--success-container);
+  --color-warning-container: var(--warning-container);
+  
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
+
+  --font-headline: "Inter", sans-serif;
+  --font-label: "Public Sans", sans-serif;
+}
+
+@layer base {
+  body {
+    /* Cream/Mesh Gradient Background for Light Mode */
+    background: 
+      radial-gradient(at 0% 0%, rgba(244, 242, 236, 1) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(220, 226, 249, 0.8) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(244, 242, 236, 1) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(185, 203, 255, 0.4) 0px, transparent 50%);
+    background-color: #fdfbf7;
+    background-attachment: fixed;
+    color: var(--on-background);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+  
+  .dark body {
+    /* Dark Mesh Gradient Background */
+    background: 
+      radial-gradient(at 0% 0%, rgba(13, 14, 18, 1) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(48, 67, 110, 0.5) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(13, 14, 18, 1) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(64, 71, 89, 0.4) 0px, transparent 50%);
+    background-color: #0d0e12;
+    background-attachment: fixed;
+  }
+
+  /* Universal Glassmorphism Utility */
+  [class*="bg-surface"] {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  
+  /* Add subtle shadow to cards for depth */
+  .bg-surface-container-lowest {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
+  }
+  
+  .dark .bg-surface-container-lowest {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.font-label { font-family: 'Public Sans', sans-serif; }
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--outline-variant); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--outline); }

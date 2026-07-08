@@ -1,0 +1,24 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "admin": "Super Admin",
+    "org": "Organization",
+    "ops": "Supervisor"
+  },
+  "consent": {
+    "title": "Biometric Data Consent",
+    "description": "To verify identity and ensure security during shifts, Rakshak Security collects specific biometric data.",
+    "listTitle": "Collected Data:",
+    "listFacial": "Facial vectors (processed securely on-device where possible)",
+    "listFingerprint": "Fingerprint hashes (optional)",
+    "rightsTitle": "Your Rights",
+    "rightsDescription": "Under the DPDPA, you have the right to withdraw this consent at any time and request erasure of your biometric data.",
+    "accept": "I Consent",
+    "decline": "Withdraw Consent / Decline"
+  },
+  "privacy": {
+    "bannerText": "We use cookies and collect data in compliance with the Digital Personal Data Protection Act (DPDPA).",
+    "link": "Read our Privacy Notice",
+    "dismiss": "Got it"
+  }
+}
