@@ -10,6 +10,8 @@ interface Tenant {
   billing_tier: string;
   guard_capacity: number;
   site_capacity: number;
+  custom_pricing: number | null;
+  features: any;
   status: string;
   created_at: string;
 }
@@ -26,6 +28,12 @@ export default function AdminTenantsPage() {
   const [orgName, setOrgName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
   const [billingTier, setBillingTier] = useState('Starter');
+  const [customPricing, setCustomPricing] = useState('');
+  const [features, setFeatures] = useState({
+    advanced_geofence: false,
+    ai_reports: false,
+    custom_branding: false
+  });
 
   const loadData = async () => {
     try {
@@ -89,6 +97,8 @@ export default function AdminTenantsPage() {
             billing_tier: billingTier,
             guard_capacity: guardCapacity,
             site_capacity: siteCapacity,
+            custom_pricing: customPricing ? parseFloat(customPricing) : null,
+            features: features,
             status: 'active'
           }
         ]);
@@ -99,6 +109,8 @@ export default function AdminTenantsPage() {
       setOrgName('');
       setOwnerEmail('');
       setBillingTier('Starter');
+      setCustomPricing('');
+      setFeatures({ advanced_geofence: false, ai_reports: false, custom_branding: false });
       setShowProvisionModal(false);
 
       // Reload
@@ -163,9 +175,9 @@ export default function AdminTenantsPage() {
                 <thead className="bg-surface-container sticky top-0 z-10">
                     <tr>
                         <th className="p-4 font-bold text-sm text-on-surface-variant border-b border-outline-variant uppercase font-label">Organization</th>
-                        <th className="p-4 font-bold text-sm text-on-surface-variant border-b border-outline-variant uppercase font-label">Tier</th>
+                        <th className="p-4 font-bold text-sm text-on-surface-variant border-b border-outline-variant uppercase font-label">Tier & Pricing</th>
                         <th className="p-4 font-bold text-sm text-on-surface-variant border-b border-outline-variant uppercase font-label">Guards Usage</th>
-                        <th className="p-4 font-bold text-sm text-on-surface-variant border-b border-outline-variant uppercase font-label">Sites Usage</th>
+                        <th className="p-4 font-bold text-sm text-on-surface-variant border-b border-outline-variant uppercase font-label">Features</th>
                         <th className="p-4 font-bold text-sm text-on-surface-variant border-b border-outline-variant uppercase font-label">Status</th>
                         <th className="p-4 font-bold text-sm text-on-surface-variant border-b border-outline-variant uppercase font-label text-right">Actions</th>
                     </tr>
@@ -194,7 +206,7 @@ export default function AdminTenantsPage() {
                                 <div className="text-[10px] text-on-surface-variant font-mono mt-0.5">ID: {tenant.id}</div>
                             </td>
                             <td className="p-4">
-                                <span className={`px-2 py-1 rounded font-bold text-xs border ${
+                                <span className={`px-2 py-1 rounded font-bold text-xs border inline-block mb-1 ${
                                   tenant.billing_tier === 'Enterprise' 
                                     ? 'bg-primary/10 text-primary border-primary/20' 
                                     : tenant.billing_tier === 'Professional' 
@@ -203,6 +215,9 @@ export default function AdminTenantsPage() {
                                 }`}>
                                   {tenant.billing_tier}
                                 </span>
+                                {tenant.custom_pricing !== null && (
+                                  <div className="text-xs font-mono text-on-surface-variant">₹{tenant.custom_pricing}/mo</div>
+                                )}
                             </td>
                             <td className="p-4">
                                 <div className="flex items-center gap-2">
@@ -216,9 +231,10 @@ export default function AdminTenantsPage() {
                                 </div>
                             </td>
                             <td className="p-4">
-                                <div className="font-mono">{sitesCount} / {tenant.site_capacity >= 999 ? '∞' : tenant.site_capacity}</div>
-                                <div className="w-24 h-1.5 bg-surface-container rounded-full mt-1 overflow-hidden">
-                                    <div className="h-full bg-primary" style={{ width: `${siteProgress}%` }}></div>
+                                <div className="flex flex-col gap-1">
+                                  {tenant.features?.advanced_geofence && <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded w-max">Adv Geofence</span>}
+                                  {tenant.features?.ai_reports && <span className="text-[10px] bg-[var(--color-orange)]/10 text-[var(--color-orange)] px-1.5 py-0.5 rounded w-max">AI Reports</span>}
+                                  {tenant.features?.custom_branding && <span className="text-[10px] bg-success/10 text-success px-1.5 py-0.5 rounded w-max">Branding</span>}
                                 </div>
                             </td>
                             <td className="p-4">
@@ -284,12 +300,42 @@ export default function AdminTenantsPage() {
                         <select 
                           value={billingTier}
                           onChange={e => setBillingTier(e.target.value)}
-                          className="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 focus:border-primary outline-none text-sm text-on-surface"
+                          className="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 focus:border-primary outline-none text-sm text-on-surface mb-3"
                         >
                             <option value="Starter">Starter (Up to 25 guards, 2 sites)</option>
                             <option value="Professional">Professional (Up to 100 guards, 10 sites)</option>
                             <option value="Enterprise">Enterprise (Unlimited)</option>
                         </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-label font-bold text-on-surface mb-1">Custom Pricing (Optional)</label>
+                        <div className="flex items-center relative">
+                            <span className="absolute left-3 text-on-surface-variant text-sm font-mono">₹</span>
+                            <input 
+                              type="number"
+                              value={customPricing}
+                              onChange={e => setCustomPricing(e.target.value)}
+                              className="w-full bg-surface-container border border-outline-variant rounded-lg pl-8 pr-3 py-2 focus:border-primary outline-none text-sm text-on-surface" 
+                              placeholder="Monthly amount" 
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-label font-bold text-on-surface mb-2">Enabled Features</label>
+                        <div className="flex flex-col gap-2">
+                          <label className="flex items-center gap-2 text-sm text-on-surface cursor-pointer">
+                            <input type="checkbox" checked={features.advanced_geofence} onChange={e => setFeatures({...features, advanced_geofence: e.target.checked})} className="accent-primary w-4 h-4" />
+                            Advanced Geofencing
+                          </label>
+                          <label className="flex items-center gap-2 text-sm text-on-surface cursor-pointer">
+                            <input type="checkbox" checked={features.ai_reports} onChange={e => setFeatures({...features, ai_reports: e.target.checked})} className="accent-primary w-4 h-4" />
+                            AI Incident Reports
+                          </label>
+                          <label className="flex items-center gap-2 text-sm text-on-surface cursor-pointer">
+                            <input type="checkbox" checked={features.custom_branding} onChange={e => setFeatures({...features, custom_branding: e.target.checked})} className="accent-primary w-4 h-4" />
+                            Custom Branding
+                          </label>
+                        </div>
                     </div>
                     <div className="pt-4 flex justify-end gap-3">
                         <button type="button" onClick={() => setShowProvisionModal(false)} className="px-4 py-2 rounded-lg font-bold text-sm text-on-surface-variant hover:bg-surface-container-high transition-colors">Cancel</button>
