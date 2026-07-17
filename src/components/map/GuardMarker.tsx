@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
-import { Marker, Popup } from 'react-leaflet';
-import L from 'leaflet';
+import React, { useEffect, useRef } from 'react';
+import { createRoot, Root } from 'react-dom/client';
 import { GuardPin } from '../../types/guard';
+import { useMapplsMap } from './MapplsMapWrapper';
 import { GuardTelemetryPopover } from './GuardTelemetryPopover';
 
 interface GuardMarkerProps {
@@ -11,21 +11,70 @@ interface GuardMarkerProps {
 }
 
 export function GuardMarker({ guard }: GuardMarkerProps) {
-  const initials = guard.name.split(' ').map(n => n[0]).join('').substring(0, 2);
-  
-  const customIcon = L.divIcon({
-    className: 'custom-leaflet-marker',
-    html: `<div class="guard-marker font-label text-xs font-bold text-on-surface select-none ${guard.status === 'active' ? 'active marker-pulse-active' : ''} ${guard.status === 'pending' ? 'pending marker-pulse-pending' : ''} ${guard.status === 'critical' ? 'critical marker-pulse-critical' : ''} ${guard.status === 'completed' ? 'completed' : ''}">${initials}</div>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -16],
-  });
+  const { map, mapplsClassObject } = useMapplsMap();
+  const markerRef = useRef<any>(null);
+  const infoWindowRef = useRef<any>(null);
+  const rootRef = useRef<Root | null>(null);
 
-  return (
-    <Marker position={[guard.position.lat, guard.position.lng]} icon={customIcon}>
-      <Popup className="custom-popup" maxWidth={320} minWidth={300}>
-        <GuardTelemetryPopover guard={guard} onClose={() => {}} />
-      </Popup>
-    </Marker>
-  );
+  useEffect(() => {
+    if (!map || !mapplsClassObject) return;
+
+    const initials = guard.name.split(' ').map(n => n[0]).join('').substring(0, 2);
+    const htmlContent = `<div class="guard-marker font-label text-xs font-bold text-on-surface select-none ${guard.status === 'active' ? 'active marker-pulse-active' : ''} ${guard.status === 'pending' ? 'pending marker-pulse-pending' : ''} ${guard.status === 'critical' ? 'critical marker-pulse-critical' : ''} ${guard.status === 'completed' ? 'completed' : ''}">${initials}</div>`;
+
+    markerRef.current = new mapplsClassObject.Marker({
+      map: map,
+      position: { lat: guard.position.lat, lng: guard.position.lng },
+      html: htmlContent,
+      width: 32,
+      height: 32,
+      offset: [0, -16]
+    });
+
+    const popupContainer = document.createElement('div');
+    rootRef.current = createRoot(popupContainer);
+
+    const closePopup = () => {
+        if (infoWindowRef.current) {
+           try {
+               // InfoWindow might have a remove or close method, or we use map.remove
+               if (typeof infoWindowRef.current.remove === 'function') {
+                   infoWindowRef.current.remove();
+               } else {
+                   mapplsClassObject.remove({ map: map, layer: infoWindowRef.current });
+               }
+           } catch(e) {}
+        }
+    };
+
+    rootRef.current.render(<GuardTelemetryPopover guard={guard} onClose={closePopup} />);
+
+    if (typeof markerRef.current.addListener === 'function') {
+        markerRef.current.addListener('click', () => {
+            closePopup(); // Close existing if any
+            
+            infoWindowRef.current = new mapplsClassObject.InfoWindow({
+                map: map,
+                content: popupContainer,
+                position: { lat: guard.position.lat, lng: guard.position.lng }
+            });
+        });
+    }
+
+    return () => {
+      if (rootRef.current) {
+        setTimeout(() => {
+            if (rootRef.current) rootRef.current.unmount();
+        }, 0);
+      }
+      if (markerRef.current) {
+        try {
+            mapplsClassObject.remove({ map: map, layer: markerRef.current });
+        } catch(e) {}
+      }
+      closePopup();
+    };
+  }, [map, mapplsClassObject, guard]);
+
+  return null;
 }

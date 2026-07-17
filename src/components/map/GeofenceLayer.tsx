@@ -1,26 +1,39 @@
 'use client';
 
-import React from 'react';
-import { Polygon } from 'react-leaflet';
+import React, { useEffect, useRef } from 'react';
 import { GeofenceZone, GeoCoord } from '../../types/guard';
+import { useMapplsMap } from './MapplsMapWrapper';
 
 interface GeofenceLayerProps {
   zone: GeofenceZone;
 }
 
 export function GeofenceLayer({ zone }: GeofenceLayerProps) {
-  const coords = zone.polygon.map((coord: GeoCoord) => [coord.lat, coord.lng] as [number, number]);
+  const { map, mapplsClassObject } = useMapplsMap();
+  const polygonRef = useRef<any>(null);
 
-  return (
-    <Polygon
-      positions={coords}
-      pathOptions={{
-        color: '#4c5e8b',
-        weight: 2,
-        opacity: 0.8,
-        fillColor: '#4c5e8b',
-        fillOpacity: 0.15,
-      }}
-    />
-  );
+  useEffect(() => {
+    if (!map || !mapplsClassObject) return;
+
+    const coords = zone.polygon.map((coord: GeoCoord) => ({ lat: coord.lat, lng: coord.lng }));
+
+    polygonRef.current = new mapplsClassObject.Polygon({
+      map: map,
+      paths: coords,
+      fillColor: '#4c5e8b',
+      fillOpacity: 0.15,
+      strokeColor: '#4c5e8b',
+      strokeOpacity: 0.8,
+      strokeWeight: 2,
+      fitbounds: false
+    });
+
+    return () => {
+      if (polygonRef.current) {
+        mapplsClassObject.remove({ map: map, layer: polygonRef.current });
+      }
+    };
+  }, [map, mapplsClassObject, zone]);
+
+  return null;
 }
