@@ -7,9 +7,10 @@ interface MapControlsProps {
     activeFilters: GuardStatus[];
     toggleFilter: (status: GuardStatus) => void;
     onRecenter: () => void;
+    onCreateGeofence?: () => void;
 }
 
-export function MapControls({ totalGuards, siteCount, activeFilters, toggleFilter, onRecenter }: MapControlsProps) {
+export function MapControls({ totalGuards, siteCount, activeFilters, toggleFilter, onRecenter, onCreateGeofence }: MapControlsProps) {
   return (
     <div className="absolute top-4 left-4 right-14 z-10 flex flex-wrap justify-between items-start gap-4 pointer-events-none">
         {/* Left side: Context Summary */}
@@ -45,6 +46,15 @@ export function MapControls({ totalGuards, siteCount, activeFilters, toggleFilte
                     colorClass="text-error"
                 />
                 <div className="w-[1px] bg-outline-variant/50 mx-1 my-1"></div>
+                {onCreateGeofence && (
+                    <button 
+                        onClick={onCreateGeofence}
+                        className="p-1.5 rounded text-primary hover:bg-primary/10 transition-colors"
+                        title="Create Geofence at My Location"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">share_location</span>
+                    </button>
+                )}
                 <button 
                     onClick={onRecenter}
                     className="p-1.5 rounded text-on-surface-variant hover:bg-surface-container-high transition-colors"

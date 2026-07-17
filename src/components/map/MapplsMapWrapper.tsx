@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useRef, useState, createContext, useContext } from 'react';
-import { mappls } from 'mappls-web-maps';
 import { GeoCoord, GuardPin, GeofenceZone, PatrolRoute } from '../../types/guard';
 import { GuardMarker } from './GuardMarker';
 import { GeofenceLayer } from './GeofenceLayer';
@@ -13,14 +12,14 @@ export interface MapContainerProps {
   zoom?: number;
   className?: string;
   guards?: GuardPin[];
-  geofences?: GeofenceZone[];
+  geofences?: GeofenceZone[]
   patrols?: PatrolRoute[];
   activeRoute?: PatrolRoute | null;
 }
 
 interface MapplsContextType {
   map: any;
-  mapplsClassObject: any;
+  mapplsObject: any;
 }
 
 export const MapplsMapContext = createContext<MapplsContextType | null>(null);
@@ -33,6 +32,25 @@ export function useMapplsMap() {
   return context;
 }
 
+function loadScript(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // Don't load if already present
+    if (document.querySelector(`script[src="${src}"]`)) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = true;
+    script.type = 'text/javascript';
+    script.onload = () => resolve();
+    script.onerror = (e) => reject(new Error(`Failed to load script: ${src}`));
+    document.head.appendChild(script);
+  });
+}
+
+const MAP_CONTAINER_ID = 'mappls-map-container';
+
 export default function MapplsMapWrapper({ 
   children, 
   center = { lat: 23.0225, lng: 72.5714 },
@@ -43,50 +61,131 @@ export default function MapplsMapWrapper({
   patrols = [],
   activeRoute = null,
 }: MapContainerProps) {
-  const mapRef = useRef<HTMLDivElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const [mapInstance, setMapInstance] = useState<any>(null);
-  const [mapplsClass, setMapplsClass] = useState<any>(null);
+  const [mapplsObj, setMapplsObj] = useState<any>(null);
+  const initRef = useRef(false);
 
   useEffect(() => {
-    if (!mapRef.current) return;
-    if (mapInstance) return;
+    if (initRef.current) return;
+    initRef.current = true;
 
-    const mapplsClassObject = new mappls();
-    const token = process.env.NEXT_PUBLIC_MAPPLS_TOKEN || "";
+    const token = process.env.NEXT_PUBLIC_MAPPLS_TOKEN;
+    if (!token) {
+      console.error('[MapplsMap] NEXT_PUBLIC_MAPPLS_TOKEN is not set in .env.local');
+      return;
+    }
+
+    console.log('[MapplsMap] Loading SDK with token:', token.substring(0, 8) + '...');
+
+    // For Auth2 (newer tokens), the URL format is different
+    const auth2Url = `https://apis.mappls.com/advancedmaps/api/${token}/map_sdk?layer=vector&v=3.0`;
+    const fallbackUrl = `https://apis.mappls.com/advancedmaps/api/${token}/map_sdk_plugins?v=3.0`; // Just in case
     
-    // Fallback ID to ensure map has a container id
-    const containerId = "mappls-map-" + Math.random().toString(36).substring(7);
-    mapRef.current.id = containerId;
+    // Actually the standard Mappls Web Map SDK URL for both is this one, but sometimes it throws 404 if the token isn't authorized for Web SDK
+    const primaryUrl = `https://apis.mappls.com/advancedmaps/api/${token}/map_sdk?layer=vector&v=3.0`;
 
-    mapplsClassObject.initialize(token, { map: true }, () => {
-      const newMap = mapplsClassObject.Map({
-        id: containerId,
-        properties: {
+    const checkAndInitMap = (m: any) => {
+      console.log('[MapplsMap] window.mappls ready, creating map...');
+      try {
+        const newMap = new m.Map(MAP_CONTAINER_ID, {
           center: [center.lat, center.lng],
           zoom: zoom,
           zoomControl: true,
-          location: true
-        }
-      });
-      
-      newMap.on('load', () => {
-        setMapInstance(newMap);
-        setMapplsClass(mapplsClassObject);
-      });
-    });
-
-    return () => {
-      if (mapInstance && typeof mapInstance.remove === 'function') {
-        mapInstance.remove();
+        });
+        
+        newMap.on('load', () => {
+          console.log('[MapplsMap] Map loaded!');
+          setMapInstance(newMap);
+          setMapplsObj(m);
+        });
+      } catch (err) {
+        console.error('[MapplsMap] Error creating map:', err);
       }
     };
-  }, []);
+
+    loadScript(primaryUrl)
+      .then(() => {
+        console.log('[MapplsMap] Primary SDK script loaded.');
+        let attempts = 0;
+        const poll = setInterval(() => {
+          attempts++;
+          const m = (window as any).mappls;
+          if (m) {
+            clearInterval(poll);
+            checkAndInitMap(m);
+          } else if (attempts > 50) {
+            clearInterval(poll);
+            console.error('[MapplsMap] window.mappls not found after loading primary script.');
+          }
+        }, 100);
+      })
+      .catch((err) => {
+        console.error('[MapplsMap] Primary SDK load failed:', err);
+        console.log('[MapplsMap] Trying alternative Auth2 URL...');
+        
+        // Alternative URL for Mappls Auth2
+        const altUrl = `https://sdk.mappls.com/map/sdk/web?v=3.0&access_token=${token}`;
+        loadScript(altUrl)
+          .then(() => {
+            console.log('[MapplsMap] Alternative SDK script loaded.');
+            let attempts = 0;
+            const poll = setInterval(() => {
+              attempts++;
+              const m = (window as any).mappls;
+              if (m) {
+                clearInterval(poll);
+                checkAndInitMap(m);
+              } else if (attempts > 50) {
+                clearInterval(poll);
+                console.error('[MapplsMap] window.mappls not found after loading alternative script.');
+              }
+            }, 100);
+          })
+          .catch((altErr) => {
+            console.error('[MapplsMap] Alternative SDK load also failed:', altErr);
+          });
+      });
+  }, []); // Run only once
+
+  // Dynamic panning when center prop changes
+  useEffect(() => {
+    if (mapInstance && center) {
+      try {
+        // Mappls SDK uses [lat, lng] arrays for center in its wrappers
+        mapInstance.setCenter([center.lat, center.lng]);
+        if (zoom) {
+          mapInstance.setZoom(zoom);
+        }
+      } catch (err) {
+        console.error('[MapplsMap] Error panning to new center:', err);
+      }
+    }
+  }, [center.lat, center.lng, zoom, mapInstance]);
+
+  // Cleanup WebGL contexts on unmount to prevent Next.js Fast Refresh crashes
+  useEffect(() => {
+    return () => {
+      if (mapInstance && typeof mapInstance.remove === 'function') {
+        try {
+          mapInstance.remove();
+        } catch (e) {
+          console.error('[MapplsMap] Error removing map instance:', e);
+        }
+      }
+    };
+  }, [mapInstance]);
 
   return (
     <div className={`relative ${className}`} style={{ minHeight: '400px', zIndex: 0 }}>
-      <div ref={mapRef} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }} />
-      {mapInstance && mapplsClass && (
-        <MapplsMapContext.Provider value={{ map: mapInstance, mapplsClassObject: mapplsClass }}>
+      <div 
+        id={MAP_CONTAINER_ID}
+        ref={mapContainerRef} 
+        style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }} 
+      />
+      {children}
+      {mapInstance && mapplsObj && (
+        <MapplsMapContext.Provider value={{ map: mapInstance, mapplsObject: mapplsObj }}>
           {geofences.map(zone => (
             <GeofenceLayer key={zone.id} zone={zone} />
           ))}
@@ -102,8 +201,6 @@ export default function MapplsMapWrapper({
           {guards.map(guard => (
             <GuardMarker key={guard.id} guard={guard} />
           ))}
-
-          {children}
         </MapplsMapContext.Provider>
       )}
     </div>

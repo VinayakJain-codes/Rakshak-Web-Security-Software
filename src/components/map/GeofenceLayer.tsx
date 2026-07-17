@@ -9,31 +9,37 @@ interface GeofenceLayerProps {
 }
 
 export function GeofenceLayer({ zone }: GeofenceLayerProps) {
-  const { map, mapplsClassObject } = useMapplsMap();
+  const { map, mapplsObject } = useMapplsMap();
   const polygonRef = useRef<any>(null);
 
   useEffect(() => {
-    if (!map || !mapplsClassObject) return;
+    if (!map || !mapplsObject) return;
 
     const coords = zone.polygon.map((coord: GeoCoord) => ({ lat: coord.lat, lng: coord.lng }));
 
-    polygonRef.current = new mapplsClassObject.Polygon({
-      map: map,
-      paths: coords,
-      fillColor: '#4c5e8b',
-      fillOpacity: 0.15,
-      strokeColor: '#4c5e8b',
-      strokeOpacity: 0.8,
-      strokeWeight: 2,
-      fitbounds: false
-    });
+    try {
+      polygonRef.current = mapplsObject.Polygon({
+        map: map,
+        paths: coords,
+        fillColor: '#4c5e8b',
+        fillOpacity: 0.15,
+        strokeColor: '#4c5e8b',
+        strokeOpacity: 0.8,
+        strokeWeight: 2,
+        fitbounds: false
+      });
+    } catch (e) {
+      console.error('Error creating geofence polygon:', e);
+    }
 
     return () => {
       if (polygonRef.current) {
-        mapplsClassObject.remove({ map: map, layer: polygonRef.current });
+        try {
+          mapplsObject.remove({ map: map, layer: polygonRef.current });
+        } catch(e) {}
       }
     };
-  }, [map, mapplsClassObject, zone]);
+  }, [map, mapplsObject, zone]);
 
   return null;
 }

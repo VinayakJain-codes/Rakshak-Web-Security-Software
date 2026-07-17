@@ -8,9 +8,43 @@ import { MapLegend } from '../../../../components/map/MapLegend';
 import { MapControls } from '../../../../components/map/MapControls';
 import { StatusBadge } from '../../../../components/ui/rakshak/StatusBadge';
 import { createClient } from '../../../../utils/supabase/client';
+import { useAuth } from '../../../../providers/AuthProvider';
+
+function generateCirclePolygon(centerLat: number, centerLng: number, radiusInMeters: number = 100, numberOfPoints: number = 24): {lat: number, lng: number}[] {
+  const points: {lat: number, lng: number}[] = [];
+  const earthRadius = 6378137;
+
+  for (let i = 0; i < numberOfPoints; i++) {
+    const angle = (i * 360) / numberOfPoints;
+    const bearing = (angle * Math.PI) / 180;
+    
+    const dR = radiusInMeters / earthRadius;
+    const latRad = (centerLat * Math.PI) / 180;
+    const lngRad = (centerLng * Math.PI) / 180;
+
+    const destLatRad = Math.asin(
+      Math.sin(latRad) * Math.cos(dR) +
+      Math.cos(latRad) * Math.sin(dR) * Math.cos(bearing)
+    );
+
+    const destLngRad = lngRad + Math.atan2(
+      Math.sin(bearing) * Math.sin(dR) * Math.cos(latRad),
+      Math.cos(dR) - Math.sin(latRad) * Math.sin(destLatRad)
+    );
+
+    points.push({
+      lat: (destLatRad * 180) / Math.PI,
+      lng: (destLngRad * 180) / Math.PI,
+    });
+  }
+
+  points.push({ ...points[0] });
+  return points;
+}
 
 export default function OpsTrackerPage() {
   const supabase = createClient();
+  const { tenantId } = useAuth();
   const { guards, isLoading: guardsLoading, lastUpdated } = useGuardPositions();
   const [geofences, setGeofences] = useState<GeofenceZone[]>([]);
   const [patrols, setPatrols] = useState<PatrolRoute[]>([]);
@@ -18,6 +52,12 @@ export default function OpsTrackerPage() {
   const [activeFilters, setActiveFilters] = useState<GuardStatus[]>(['active', 'pending', 'critical']);
   const [searchQuery, setSearchQuery] = useState('');
   const [mapCenter, setMapCenter] = useState({ lat: 23.0225, lng: 72.5714 });
+
+  // Geofence Creation State
+  const [showGeofenceModal, setShowGeofenceModal] = useState(false);
+  const [geofenceName, setGeofenceName] = useState('');
+  const [geofenceColor, setGeofenceColor] = useState('#007AFF');
+  const [tempGeofence, setTempGeofence] = useState<GeofenceZone | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'geolocation' in navigator) {
@@ -34,7 +74,6 @@ export default function OpsTrackerPage() {
 
   const loadTrackerData = async () => {
     try {
-      // 1. Load geofences
       const { data: geoData } = await supabase.from('geofences').select('*');
       if (geoData) {
         const mappedGeo: GeofenceZone[] = geoData.map((row: any) => ({
@@ -47,7 +86,6 @@ export default function OpsTrackerPage() {
         setGeofences(mappedGeo);
       }
 
-      // 2. Load patrols
       const { data: patrolData } = await supabase.from('patrols').select('*');
       if (patrolData) {
         const mappedPatrols: PatrolRoute[] = patrolData.map((row: any) => ({
@@ -68,14 +106,11 @@ export default function OpsTrackerPage() {
 
   useEffect(() => {
     loadTrackerData();
-
-    // Subscribe to changes on geofences and patrols
     const channel = supabase
       .channel('live-tracker-entities')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'geofences' }, () => loadTrackerData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'patrols' }, () => loadTrackerData())
       .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
     };
@@ -96,11 +131,69 @@ export default function OpsTrackerPage() {
         (error) => {
           console.warn("Geolocation error:", error);
           setMapCenter({ lat: 23.0225, lng: 72.5714 });
-        }
+        },
+        { enableHighAccuracy: true, maximumAge: 0 }
       );
     } else {
       setMapCenter({ lat: 23.0225, lng: 72.5714 });
     }
+  };
+
+  const handleCreateGeofenceStart = () => {
+    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          setMapCenter({ lat, lng });
+          
+          const polygon = generateCirclePolygon(lat, lng, 100);
+          setTempGeofence({
+            id: 'temp-geofence',
+            siteId: 'temp',
+            siteName: 'New Site (Pending)',
+            polygon,
+            color: geofenceColor
+          });
+          setShowGeofenceModal(true);
+        },
+        (error) => {
+          alert('Unable to get exact location. Please allow browser location access.');
+        },
+        { enableHighAccuracy: true }
+      );
+    } else {
+      alert('Geolocation is not supported by your browser.');
+    }
+  };
+
+  const saveGeofence = async () => {
+    if (!tempGeofence || !tenantId || !geofenceName.trim()) return;
+
+    try {
+      const { error } = await supabase.from('geofences').insert([{
+        tenant_id: tenantId,
+        site_name: geofenceName,
+        polygon: tempGeofence.polygon,
+        color: geofenceColor
+      }]);
+
+      if (error) throw error;
+      
+      // Reset state and hide modal, loadTrackerData will be triggered by realtime
+      setShowGeofenceModal(false);
+      setTempGeofence(null);
+      setGeofenceName('');
+      loadTrackerData();
+    } catch (e: any) {
+      alert(`Error saving geofence: ${e.message}`);
+    }
+  };
+
+  const cancelGeofence = () => {
+    setShowGeofenceModal(false);
+    setTempGeofence(null);
+    setGeofenceName('');
   };
 
   const filteredGuards = guards.filter(g => 
@@ -114,8 +207,11 @@ export default function OpsTrackerPage() {
     return <div className="flex-1 flex items-center justify-center min-h-[500px]">Loading telemetry...</div>;
   }
 
+  // Inject the temp geofence if it exists so MapContainer renders it immediately
+  const renderGeofences = tempGeofence ? [...geofences, tempGeofence] : geofences;
+
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] -m-4 md:-m-8">
+    <div className="flex flex-col h-[calc(100vh-80px)] -m-4 md:-m-8 relative">
       {criticalGuards.length > 0 && (
         <div className="bg-error-container text-on-error-container px-6 py-2 flex items-center justify-between font-label text-sm z-20">
           <div className="flex items-center gap-2">
@@ -131,10 +227,10 @@ export default function OpsTrackerPage() {
         <div className="flex-1 relative">
           <MapContainer 
             center={mapCenter} 
-            zoom={13} 
+            zoom={16} 
             className="w-full h-full"
             guards={filteredGuards}
-            geofences={geofences}
+            geofences={renderGeofences}
             patrols={patrols}
           >
             <MapControls 
@@ -143,8 +239,8 @@ export default function OpsTrackerPage() {
                 activeFilters={activeFilters}
                 toggleFilter={toggleFilter}
                 onRecenter={handleRecenter}
+                onCreateGeofence={handleCreateGeofenceStart}
             />
-            
             <MapLegend />
           </MapContainer>
         </div>
@@ -197,6 +293,72 @@ export default function OpsTrackerPage() {
           </div>
         </div>
       </div>
+
+      {/* Geofence Creation Modal */}
+      {showGeofenceModal && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-scrim/50 backdrop-blur-sm p-4">
+          <div className="bg-surface-container-lowest rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <h2 className="text-xl font-headline font-bold mb-2 text-on-surface flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">add_location_alt</span>
+                Save New Site Geofence
+              </h2>
+              <p className="text-on-surface-variant text-sm mb-6">
+                A 100m radius geofence has been drawn around your current exact location. Give it a name to save it to your database.
+              </p>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-on-surface mb-1">Site Name</label>
+                  <input
+                    type="text"
+                    value={geofenceName}
+                    onChange={(e) => setGeofenceName(e.target.value)}
+                    placeholder="e.g. Headquarters"
+                    className="w-full bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-on-surface mb-1">Boundary Color</label>
+                  <div className="flex gap-2">
+                    {['#007AFF', '#34C759', '#FF9500', '#FF3B30', '#5856D6'].map(color => (
+                      <button
+                        key={color}
+                        onClick={() => {
+                          setGeofenceColor(color);
+                          if (tempGeofence) {
+                            setTempGeofence({...tempGeofence, color});
+                          }
+                        }}
+                        className={`w-8 h-8 rounded-full border-2 transition-transform ${geofenceColor === color ? 'scale-110 border-on-surface' : 'border-transparent hover:scale-105'}`}
+                        style={{ backgroundColor: color }}
+                        aria-label={`Select color ${color}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-surface-container p-4 border-t border-outline-variant flex justify-end gap-3">
+              <button 
+                onClick={cancelGeofence}
+                className="px-4 py-2 font-label font-bold text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={saveGeofence}
+                disabled={!geofenceName.trim()}
+                className="px-4 py-2 font-label font-bold bg-primary text-on-primary hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[18px]">save</span>
+                Save Geofence
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
