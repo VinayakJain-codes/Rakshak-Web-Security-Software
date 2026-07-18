@@ -30,7 +30,6 @@ export default function AdminTenantsPage() {
   const [billingTier, setBillingTier] = useState('Starter');
   const [customPricing, setCustomPricing] = useState('');
   const [features, setFeatures] = useState({
-    advanced_geofence: false,
     ai_reports: false,
     custom_branding: false
   });
@@ -110,7 +109,7 @@ export default function AdminTenantsPage() {
       setOwnerEmail('');
       setBillingTier('Starter');
       setCustomPricing('');
-      setFeatures({ advanced_geofence: false, ai_reports: false, custom_branding: false });
+      setFeatures({ ai_reports: false, custom_branding: false });
       setShowProvisionModal(false);
 
       // Reload
@@ -232,7 +231,6 @@ export default function AdminTenantsPage() {
                             </td>
                             <td className="p-4">
                                 <div className="flex flex-col gap-1">
-                                  {tenant.features?.advanced_geofence && <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded w-max">Adv Geofence</span>}
                                   {tenant.features?.ai_reports && <span className="text-[10px] bg-[var(--color-orange)]/10 text-[var(--color-orange)] px-1.5 py-0.5 rounded w-max">AI Reports</span>}
                                   {tenant.features?.custom_branding && <span className="text-[10px] bg-success/10 text-success px-1.5 py-0.5 rounded w-max">Branding</span>}
                                 </div>
@@ -293,7 +291,7 @@ export default function AdminTenantsPage() {
                           className="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 focus:border-primary outline-none text-sm text-on-surface" 
                           placeholder="owner@apex.co" 
                         />
-                        <p className="text-xs text-on-surface-variant mt-1">An invitation with temporary credentials will be emailed to this address.</p>
+                        <p className="text-xs text-on-surface-variant mt-1">Temporary credentials will be generated for this user.</p>
                     </div>
                     <div>
                         <label className="block text-sm font-label font-bold text-on-surface mb-1">Subscription Tier</label>
@@ -323,10 +321,6 @@ export default function AdminTenantsPage() {
                     <div>
                         <label className="block text-sm font-label font-bold text-on-surface mb-2">Enabled Features</label>
                         <div className="flex flex-col gap-2">
-                          <label className="flex items-center gap-2 text-sm text-on-surface cursor-pointer">
-                            <input type="checkbox" checked={features.advanced_geofence} onChange={e => setFeatures({...features, advanced_geofence: e.target.checked})} className="accent-primary w-4 h-4" />
-                            Advanced Geofencing
-                          </label>
                           <label className="flex items-center gap-2 text-sm text-on-surface cursor-pointer">
                             <input type="checkbox" checked={features.ai_reports} onChange={e => setFeatures({...features, ai_reports: e.target.checked})} className="accent-primary w-4 h-4" />
                             AI Incident Reports
