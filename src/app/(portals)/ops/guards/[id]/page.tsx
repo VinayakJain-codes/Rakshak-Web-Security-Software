@@ -4,20 +4,9 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '../../../../../utils/supabase/client';
 import { StatusBadge } from '../../../../../components/ui/rakshak/StatusBadge';
+import { Guard } from '../../../../../types/guard';
 
-type Guard = {
-  id: string;
-  name: string;
-  status: string;
-  tenant_id: string;
-};
-
-type Location = {
-  id: string;
-  lat: number;
-  lng: number;
-  timestamp: string;
-};
+// Location type removed
 
 type Schedule = {
   id: string;
@@ -40,14 +29,16 @@ export default function GuardProfilePage() {
   const supabase = createClient();
   
   const [guard, setGuard] = useState<Guard | null>(null);
-  const [locations, setLocations] = useState<Location[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [checkins, setCheckins] = useState<CheckIn[]>([]);
+  const [biometrics, setBiometrics] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Form state for scheduling
   const [taskType, setTaskType] = useState('selfie');
   const [scheduledTime, setScheduledTime] = useState('');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [intervalMinutes, setIntervalMinutes] = useState(60);
 
   useEffect(() => {
     const loadGuardData = async () => {
@@ -55,14 +46,23 @@ export default function GuardProfilePage() {
         const { data: guardData } = await supabase.from('guards').select('*').eq('id', guardId).single();
         setGuard(guardData);
 
-        const { data: locData } = await supabase.from('guard_locations').select('*').eq('guard_id', guardId).order('timestamp', { ascending: false }).limit(10);
-        setLocations(locData || []);
-
         const { data: schedData } = await supabase.from('guard_schedules').select('*').eq('guard_id', guardId).order('scheduled_time', { ascending: true });
         setSchedules(schedData || []);
 
         const { data: checkinData } = await supabase.from('guard_checkins').select('*').eq('guard_id', guardId).order('timestamp', { ascending: false });
-        setCheckins(checkinData || []);
+        
+        // Fetch signed URLs for private photos
+        const processedCheckins = await Promise.all((checkinData || []).map(async (ci) => {
+          if (ci.photo_url && !ci.photo_url.startsWith('http')) {
+            const { data } = await supabase.storage.from('guard-selfies').createSignedUrl(ci.photo_url, 3600);
+            return { ...ci, photo_url: data?.signedUrl || ci.photo_url };
+          }
+          return ci;
+        }));
+        setCheckins(processedCheckins);
+
+        const { data: bioData } = await supabase.from('guard_biometrics').select('*').eq('guard_id', guardId).order('timestamp', { ascending: false }).limit(1).single();
+        setBiometrics(bioData || null);
       } catch (err) {
         console.error('Error loading guard data:', err);
       } finally {
@@ -71,23 +71,43 @@ export default function GuardProfilePage() {
     };
     
     loadGuardData();
+
+    // Subscribe to live biometrics
+    const channel = supabase.channel(`guard_bio_${guardId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'guard_biometrics', filter: `guard_id=eq.${guardId}` }, (payload) => {
+        setBiometrics(payload.new);
+      }).subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [supabase, guardId]);
 
   const handleScheduleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!guard || !scheduledTime) return;
+    if (!guard) return;
 
     try {
-      const { data, error } = await supabase.from('guard_schedules').insert([{
-        tenant_id: guard.tenant_id,
-        guard_id: guard.id,
-        task_type: taskType,
-        scheduled_time: new Date(scheduledTime).toISOString()
-      }]).select();
+      if (isRecurring) {
+        const { error } = await supabase.from('guard_schedule_rules').insert([{
+          tenant_id: guard.tenant_id,
+          guard_id: guard.id,
+          task_type: taskType,
+          interval_minutes: intervalMinutes,
+        }]);
+        if (error) throw error;
+        alert('Recurring schedule rule created successfully. The system will generate tasks automatically.');
+      } else {
+        if (!scheduledTime) return;
+        const { data, error } = await supabase.from('guard_schedules').insert([{
+          tenant_id: guard.tenant_id,
+          guard_id: guard.id,
+          task_type: taskType,
+          scheduled_time: new Date(scheduledTime).toISOString()
+        }]).select();
 
-      if (error) throw error;
-      setSchedules([...schedules, ...(data || [])]);
-      setScheduledTime('');
+        if (error) throw error;
+        setSchedules([...schedules, ...(data || [])]);
+        setScheduledTime('');
+      }
     } catch (err: any) {
       alert(`Failed to schedule task: ${err.message}`);
     }
@@ -95,8 +115,6 @@ export default function GuardProfilePage() {
 
   if (isLoading) return <div className="flex items-center justify-center min-h-[400px]">Loading profile...</div>;
   if (!guard) return <div className="text-center py-10 text-error">Guard not found.</div>;
-
-  const latestLocation = locations[0];
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -113,35 +131,44 @@ export default function GuardProfilePage() {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Col: Map and Live Location */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col h-[400px]">
-            <div className="p-4 border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
+
+          {/* Live Biometrics Tracker */}
+          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-6">
+            <div className="flex justify-between items-center mb-4">
               <h3 className="font-headline font-bold text-on-surface flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">location_on</span>
-                Real-Time Location Tracker
+                <span className="material-symbols-outlined text-primary">vital_signs</span>
+                Live Biometrics Tracker
               </h3>
-              {latestLocation && (
+              {biometrics && (
                 <span className="text-xs text-on-surface-variant font-mono">
-                  Last updated: {new Date(latestLocation.timestamp).toLocaleTimeString()}
+                  Updated: {new Date(biometrics.timestamp).toLocaleTimeString()}
                 </span>
               )}
             </div>
-            <div className="flex-1 bg-surface-container-highest relative flex items-center justify-center">
-              {/* Map Placeholder */}
-              <div className="absolute inset-0 bg-[url('https://maps.googleapis.com/maps/api/staticmap?center=28.6139,77.2090&zoom=14&size=800x400&maptype=roadmap&style=feature:all|element:labels|visibility:off&style=feature:landscape|color:0xf5f5f5&style=feature:water|color:0xd3e3f3')] bg-cover bg-center opacity-50 pointer-events-none"></div>
-              
-              {latestLocation ? (
-                <div className="z-10 bg-primary text-on-primary px-3 py-1.5 rounded-full font-bold shadow-lg flex items-center gap-2 border border-primary-container animate-bounce">
-                  <span className="material-symbols-outlined text-[16px]">person_pin_circle</span>
-                  {guard.name} is here
+            
+            {biometrics ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant text-center">
+                  <span className="block text-xs font-label text-on-surface-variant mb-1">Focus Score</span>
+                  <span className={`font-bold text-2xl ${biometrics.focus_score > 70 ? 'text-success' : 'text-error'}`}>{Math.round(biometrics.focus_score)}%</span>
                 </div>
-              ) : (
-                <div className="z-10 bg-surface-container text-on-surface-variant px-4 py-2 rounded-lg font-label text-sm border border-outline-variant shadow-sm">
-                  Location data unavailable
+                <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant text-center">
+                  <span className="block text-xs font-label text-on-surface-variant mb-1">Stress Level</span>
+                  <span className={`font-bold text-2xl ${biometrics.stress_score > 50 ? 'text-error' : 'text-on-surface'}`}>{Math.round(biometrics.stress_score)}/100</span>
                 </div>
-              )}
-            </div>
+                <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant text-center">
+                  <span className="block text-xs font-label text-on-surface-variant mb-1">Drowsy</span>
+                  <span className={`font-bold text-2xl ${biometrics.is_drowsy ? 'text-error' : 'text-success'}`}>{biometrics.is_drowsy ? 'YES' : 'NO'}</span>
+                </div>
+                <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant text-center">
+                  <span className="block text-xs font-label text-on-surface-variant mb-1">Distracted</span>
+                  <span className={`font-bold text-2xl ${biometrics.is_distracted ? 'text-warning' : 'text-success'}`}>{biometrics.is_distracted ? 'YES' : 'NO'}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-6 text-on-surface-variant text-sm font-label">No live biometrics data available. Guard may not be monitoring.</div>
+            )}
           </div>
 
           {/* Uploaded Selfies Timeline */}
@@ -167,11 +194,6 @@ export default function GuardProfilePage() {
                             <span className="material-symbols-outlined text-[32px]">no_photography</span>
                           </div>
                         )}
-                        {ci.lat && ci.lng && (
-                          <p className="text-[10px] text-on-surface-variant font-mono mt-2">
-                            Lat: {ci.lat}, Lng: {ci.lng}
-                          </p>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -187,6 +209,17 @@ export default function GuardProfilePage() {
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-5">
             <h3 className="font-headline font-bold text-on-surface mb-4">Schedule Task</h3>
             <form onSubmit={handleScheduleSubmit} className="space-y-4">
+              <div className="flex gap-4 border-b border-outline-variant pb-3 mb-3">
+                <label className="flex items-center gap-2 text-sm font-bold text-on-surface cursor-pointer">
+                  <input type="radio" checked={!isRecurring} onChange={() => setIsRecurring(false)} className="accent-primary" />
+                  One-time Task
+                </label>
+                <label className="flex items-center gap-2 text-sm font-bold text-on-surface cursor-pointer">
+                  <input type="radio" checked={isRecurring} onChange={() => setIsRecurring(true)} className="accent-primary" />
+                  Recurring Rule
+                </label>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-on-surface-variant mb-1">Task Type</label>
                 <select 
@@ -198,18 +231,33 @@ export default function GuardProfilePage() {
                   <option value="patrol">Site Patrol</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-on-surface-variant mb-1">Date & Time</label>
-                <input 
-                  type="datetime-local" 
-                  value={scheduledTime}
-                  onChange={e => setScheduledTime(e.target.value)}
-                  required
-                  className="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface outline-none focus:border-primary"
-                />
-              </div>
+              
+              {!isRecurring ? (
+                <div>
+                  <label className="block text-xs font-bold text-on-surface-variant mb-1">Date & Time</label>
+                  <input 
+                    type="datetime-local" 
+                    value={scheduledTime}
+                    onChange={e => setScheduledTime(e.target.value)}
+                    required
+                    className="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface outline-none focus:border-primary"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-bold text-on-surface-variant mb-1">Repeat Every (Minutes)</label>
+                  <input 
+                    type="number" 
+                    value={intervalMinutes}
+                    onChange={e => setIntervalMinutes(parseInt(e.target.value))}
+                    min={15}
+                    required
+                    className="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface outline-none focus:border-primary"
+                  />
+                </div>
+              )}
               <button type="submit" className="w-full bg-primary text-on-primary font-bold px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity">
-                Set Reminder
+                {isRecurring ? 'Create Rule' : 'Set Reminder'}
               </button>
             </form>
           </div>

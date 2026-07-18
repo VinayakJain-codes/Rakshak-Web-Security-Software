@@ -7,7 +7,7 @@ Rakshak is a comprehensive, multi-tenant B2B Security Operations & Management Pl
 - **Multi-Tenant Architecture**: Robust data isolation using Supabase RLS (Row Level Security).
 - **Advanced Role-Based Portals & Routing**:
   - **Super Admin**: Monitor global MRR, provision and onboard new clients, manage tenant registrations, view system-wide audit logs, manage support tickets via a live Kanban board, and configure Global Platform Settings.
-  - **Client Owner**: Manage specific organizational billing (in INR/₹), sites, guard deployments, supervisor teams, and configure Organization Policies (Geofencing, photo requirements).
+  - **Client Owner**: Manage specific organizational billing (in INR/₹), track compliance, and view dashboard reports.
   - **Supervisor**: Manage daily operational tasks, incidents, active guard tracking, and configure Ops Preferences (Alert Sounds, Tracker Contrast).
 - **Seamless Provisioning Workflow**: Client Owners and their organizations are provisioned in a single step via the Super Admin portal, which synchronizes tenant limits and authentication accounts concurrently. 
 - **Dynamic Platform Settings & Preferences**: Role-aware settings pages allowing customized localisations, UI density toggles, and security configurations stored securely.
@@ -63,7 +63,7 @@ src/
 ├── app/
 │   ├── (portals)/
 │   │   ├── admin/      # Super Admin Portal (Dashboard, Tenants, Settings, Support, Audit)
-│   │   ├── org/        # Client Owner Portal (Billing, Sites, Schedules, Team Management)
+│   │   ├── org/        # Client Owner Portal (Billing, Compliance, Dashboard, Reports)
 │   │   └── ops/        # Supervisor Portal (Live Tracking, Incidents, Ops Preferences)
 │   ├── auth/           # Login & Registration flows (Role-based redirection via middleware)
 │   └── globals.css     # Global theme & Glassmorphism styles

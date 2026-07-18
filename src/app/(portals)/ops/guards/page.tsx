@@ -4,36 +4,49 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '../../../../utils/supabase/client';
 import { StatusBadge } from '../../../../components/ui/rakshak/StatusBadge';
-
-type Guard = {
-  id: string;
-  name: string;
-  status: string;
-};
+import { AddGuardModal } from '../../../../components/ops/AddGuardModal';
+import { Guard } from '../../../../types/guard';
+import { useAuth } from '../../../../providers/AuthProvider';
 
 export default function GuardsListPage() {
   const supabase = createClient();
   const [guards, setGuards] = useState<Guard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { tenantId } = useAuth();
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [geofences, setGeofences] = useState<any[]>([]);
+
+  const fetchGuards = async () => {
+    try {
+      if (!tenantId) return;
+      const { data, error } = await supabase
+        .from('guards')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .order('name');
+      
+      if (error) throw error;
+      setGuards(data || []);
+    } catch (err) {
+      console.error('Failed to fetch guards:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchSites = async () => {
+    try {
+      if (!tenantId) return;
+      const { data } = await supabase.from('geofences').select('*').eq('tenant_id', tenantId);
+      if (data) setGeofences(data);
+    } catch (err) {
+      console.error('Failed to fetch sites', err);
+    }
+  };
 
   useEffect(() => {
-    const fetchGuards = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('guards')
-          .select('*')
-          .order('name');
-        
-        if (error) throw error;
-        setGuards(data || []);
-      } catch (err) {
-        console.error('Failed to fetch guards:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
     fetchGuards();
+    fetchSites();
   }, [supabase]);
 
   if (isLoading) {
@@ -47,7 +60,7 @@ export default function GuardsListPage() {
           <h2 className="text-2xl font-headline font-bold text-on-surface">Guards Roster</h2>
           <p className="text-on-surface-variant font-label mt-1">Manage personnel, track real-time locations, and view check-ins.</p>
         </div>
-        <button className="bg-primary text-on-primary font-bold px-4 py-2 rounded-lg flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm">
+        <button onClick={() => setShowAddModal(true)} className="bg-primary text-on-primary font-bold px-4 py-2 rounded-lg flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm">
           <span className="material-symbols-outlined text-[18px]">person_add</span>
           Add Guard
         </button>
@@ -68,10 +81,10 @@ export default function GuardsListPage() {
                 <td className="p-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg">
-                      {guard.name.charAt(0).toUpperCase()}
+                      {(guard?.name || '?').charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <div className="font-bold text-on-surface">{guard.name}</div>
+                      <div className="font-bold text-on-surface">{guard?.name || 'Unknown Guard'}</div>
                       <div className="text-xs text-on-surface-variant font-mono mt-0.5">ID: {guard.id.substring(0, 8)}</div>
                     </div>
                   </div>
@@ -100,6 +113,17 @@ export default function GuardsListPage() {
           </tbody>
         </table>
       </div>
+
+      {showAddModal && tenantId && (
+        <AddGuardModal 
+          tenantId={tenantId}
+          geofences={geofences}
+          onClose={() => setShowAddModal(false)}
+          onSuccess={() => {
+            fetchGuards();
+          }}
+        />
+      )}
     </div>
   );
 }

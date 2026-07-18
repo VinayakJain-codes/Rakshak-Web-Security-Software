@@ -23,22 +23,7 @@ export async function login(formData: FormData) {
   redirect('/'); // Middleware will redirect to correct portal
 }
 
-export async function loginWithSSO(provider: string) {
-    const supabase = await createClient();
-    
-    // For MVP, this might just redirect to a mocked flow or actual OAuth if setup
-    // Example Azure AD / Okta (SAML/OIDC usually uses signInWithOAuth)
-    const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'azure' as any, // Cast to any to bypass strict type if provider not in enum
-        options: {
-            redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
-        }
-    });
-    
-    if (data.url) {
-        redirect(data.url);
-    }
-}
+
 
 export async function logout() {
     const supabase = await createClient();

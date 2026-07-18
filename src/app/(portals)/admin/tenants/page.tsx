@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createClient } from '../../../../utils/supabase/client';
+import { createClientOwnerAccount } from '../../../actions/auth';
 
 interface Tenant {
   id: string;
@@ -23,6 +24,9 @@ export default function AdminTenantsPage() {
   const [sitesCountMap, setSitesCountMap] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [showProvisionModal, setShowProvisionModal] = useState(false);
+  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+  const [provisionedEmail, setProvisionedEmail] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form states
   const [orgName, setOrgName] = useState('');
@@ -86,37 +90,44 @@ export default function AdminTenantsPage() {
       siteCapacity = 999;
     }
 
+    setIsSubmitting(true);
     try {
-      const { error } = await supabase
-        .from('tenants')
-        .insert([
-          {
-            name: orgName,
-            owner_email: ownerEmail,
-            billing_tier: billingTier,
-            guard_capacity: guardCapacity,
-            site_capacity: siteCapacity,
-            custom_pricing: customPricing ? parseFloat(customPricing) : null,
-            features: features,
-            status: 'active'
-          }
-        ]);
+      const result = await createClientOwnerAccount({
+        orgName,
+        ownerEmail,
+        billingTier,
+        guardCapacity,
+        siteCapacity,
+        customPricing: customPricing ? parseFloat(customPricing) : null,
+        features
+      });
 
-      if (error) throw error;
+      if (result.error) throw new Error(result.error);
 
-      // Reset form
+      // Save for display
+      setProvisionedEmail(result.email || null);
+      setGeneratedPassword(result.password || null);
+
+      // Reset form but don't close modal yet so we can show the password
       setOrgName('');
       setOwnerEmail('');
       setBillingTier('Starter');
       setCustomPricing('');
       setFeatures({ ai_reports: false, custom_branding: false });
-      setShowProvisionModal(false);
 
       // Reload
       loadData();
     } catch (err: any) {
       alert(`Failed to provision client: ${err.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  const closeProvisionModal = () => {
+    setShowProvisionModal(false);
+    setGeneratedPassword(null);
+    setProvisionedEmail(null);
   };
 
   if (isLoading) {
@@ -242,7 +253,7 @@ export default function AdminTenantsPage() {
                                 </span>
                             </td>
                             <td className="p-4 text-right">
-                                <button className="text-primary hover:underline font-bold text-sm">Manage Caps</button>
+                                <button className="text-on-surface-variant/50 font-bold text-sm cursor-not-allowed" title="Coming Soon">Manage Caps</button>
                             </td>
                         </tr>
                       );
@@ -264,11 +275,55 @@ export default function AdminTenantsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
             <form onSubmit={handleProvision} className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 w-full max-w-lg shadow-2xl">
                 <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-headline font-bold text-on-surface">Provision New Client</h3>
-                    <button type="button" onClick={() => setShowProvisionModal(false)} className="text-on-surface-variant hover:text-on-surface">
+                    <h3 className="text-xl font-headline font-bold text-on-surface">
+                        {generatedPassword ? 'Client Provisioned Successfully' : 'Provision New Client'}
+                    </h3>
+                    <button type="button" onClick={closeProvisionModal} className="text-on-surface-variant hover:text-on-surface">
                         <span className="material-symbols-outlined">close</span>
                     </button>
                 </div>
+                {generatedPassword ? (
+                    <div className="space-y-6">
+                        <div className="flex justify-center mb-2">
+                            <div className="w-16 h-16 bg-success/20 rounded-full flex items-center justify-center text-success">
+                                <span className="material-symbols-outlined text-4xl">check_circle</span>
+                            </div>
+                        </div>
+                        <p className="text-on-surface-variant text-sm text-center">
+                            The organization has been created and the client owner account is ready.
+                            Please share these temporary credentials securely.
+                        </p>
+                        
+                        <div className="bg-surface-container p-4 rounded-xl space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Email (Login ID)</label>
+                                <div className="font-mono text-sm text-on-surface font-bold">{provisionedEmail}</div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Temporary Password</label>
+                                <div className="flex items-center justify-between gap-4">
+                                    <div className="font-mono text-sm text-on-surface font-bold select-all bg-surface-container-lowest px-2 py-1 rounded">
+                                        {generatedPassword}
+                                    </div>
+                                    <button 
+                                        type="button"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(generatedPassword);
+                                            alert('Password copied to clipboard!');
+                                        }}
+                                        className="text-primary hover:bg-primary/10 p-2 rounded-lg transition-colors flex items-center gap-1 text-sm font-bold"
+                                    >
+                                        <span className="material-symbols-outlined text-[18px]">content_copy</span>
+                                        Copy
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="pt-4 flex justify-end">
+                            <button type="button" onClick={closeProvisionModal} className="w-full px-4 py-2 rounded-lg font-bold text-sm bg-primary text-on-primary hover:opacity-90 transition-opacity">Done</button>
+                        </div>
+                    </div>
+                ) : (
                 <div className="space-y-4">
                     <div>
                         <label className="block text-sm font-label font-bold text-on-surface mb-1">Organization Name</label>
@@ -332,10 +387,13 @@ export default function AdminTenantsPage() {
                         </div>
                     </div>
                     <div className="pt-4 flex justify-end gap-3">
-                        <button type="button" onClick={() => setShowProvisionModal(false)} className="px-4 py-2 rounded-lg font-bold text-sm text-on-surface-variant hover:bg-surface-container-high transition-colors">Cancel</button>
-                        <button type="submit" className="px-4 py-2 rounded-lg font-bold text-sm bg-primary text-on-primary hover:opacity-90 transition-opacity">Provision & Send Invite</button>
+                        <button type="button" onClick={closeProvisionModal} className="px-4 py-2 rounded-lg font-bold text-sm text-on-surface-variant hover:bg-surface-container-high transition-colors">Cancel</button>
+                        <button type="submit" disabled={isSubmitting} className="px-4 py-2 rounded-lg font-bold text-sm bg-primary text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2">
+                            {isSubmitting ? 'Provisioning...' : 'Provision Client'}
+                        </button>
                     </div>
                 </div>
+                )}
             </form>
         </div>
       )}

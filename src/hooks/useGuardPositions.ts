@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { GuardPin, GuardStatus } from '../types/guard';
 import { createClient } from '../utils/supabase/client';
 
-export function useGuardPositions() {
+export function useGuardPositions(tenantId: string | null) {
   const [guards, setGuards] = useState<GuardPin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<number>(Date.now());
@@ -15,35 +15,42 @@ export function useGuardPositions() {
 
     async function fetchGuards() {
       try {
-        const { data, error } = await supabase
+        if (!tenantId) return;
+
+        const { data: guardsData, error } = await supabase
           .from('guards')
-          .select('*');
+          .select('*')
+          .eq('tenant_id', tenantId);
 
         if (error) throw error;
 
-        if (active && data) {
-          // Map DB rows to GuardPin structure
-          const mappedGuards: GuardPin[] = data.map((row: any) => ({
-            id: row.id,
-            name: row.name,
-            status: row.status as GuardStatus,
-            position: row.position || { lat: 23.0225, lng: 72.5714 },
-            siteId: row.site_id || '',
-            shiftStart: row.shift_start ? new Date(row.shift_start).getTime() : Date.now(),
-            shiftEnd: row.shift_end ? new Date(row.shift_end).getTime() : null,
-            telemetry: row.telemetry || {
-              biometricVector: 'N/A',
-              gpsCoordinates: row.position || { lat: 23.0225, lng: 72.5714 },
-              networkEpochTime: Date.now(),
-              accelerometerVector: [0, 0, 0],
-              ambientBrightness: 0,
-              rootDetectionStatus: 'unknown',
-              batteryLevel: 100,
-              signalStrength: 0,
-              lastSyncedAt: Date.now(),
-            },
-            avatarUrl: row.avatar_url || undefined,
-          }));
+        if (active && guardsData) {
+          // Map DB rows to GuardPin structure, defaulting position
+          const mappedGuards: GuardPin[] = guardsData.map((row: any) => {
+            const position = { lat: 0, lng: 0 };
+            
+            return {
+              id: row.id,
+              name: row.name,
+              status: row.status as GuardStatus,
+              position: position,
+              siteId: row.site_id || '',
+              shiftStart: row.shift_start ? new Date(row.shift_start).getTime() : Date.now(),
+              shiftEnd: row.shift_end ? new Date(row.shift_end).getTime() : null,
+              telemetry: row.telemetry || {
+                biometricVector: 'N/A',
+                gpsCoordinates: position,
+                networkEpochTime: Date.now(),
+                accelerometerVector: [0, 0, 0],
+                ambientBrightness: 0,
+                rootDetectionStatus: 'unknown',
+                batteryLevel: 100,
+                signalStrength: 0,
+                lastSyncedAt: Date.now(),
+              },
+              avatarUrl: row.avatar_url || undefined,
+            };
+          });
 
           setGuards(mappedGuards);
           setLastUpdated(Date.now());
@@ -60,47 +67,14 @@ export function useGuardPositions() {
     // Subscribe to real-time changes on public.guards table
     const subscription = supabase
       .channel('live-guards')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'guards' },
-        () => {
-          // Re-fetch when any change occurs (insert, update, delete) to keep data synchronized
-          fetchGuards();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'guards', filter: `tenant_id=eq.${tenantId}` }, () => fetchGuards())
       .subscribe();
-
-    // Simulate minor GPS drift locally for rendering aesthetics
-    const interval = setInterval(() => {
-      setGuards((currentGuards) =>
-        currentGuards.map((guard) => {
-          if (guard.status === 'active') {
-            const driftLat = (Math.random() - 0.5) * 0.0001;
-            const driftLng = (Math.random() - 0.5) * 0.0001;
-            return {
-              ...guard,
-              position: {
-                lat: guard.position.lat + driftLat,
-                lng: guard.position.lng + driftLng,
-              },
-              telemetry: {
-                ...guard.telemetry,
-                lastSyncedAt: Date.now(),
-              }
-            };
-          }
-          return guard;
-        })
-      );
-      setLastUpdated(Date.now());
-    }, 4000);
 
     return () => {
       active = false;
       supabase.removeChannel(subscription);
-      clearInterval(interval);
     };
-  }, [supabase]);
+  }, [tenantId, supabase]);
 
   return { guards, isLoading, lastUpdated };
 }

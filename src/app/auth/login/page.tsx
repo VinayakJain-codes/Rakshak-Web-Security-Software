@@ -55,27 +55,6 @@ function LoginContent() {
           Sign In Securely
         </button>
       </form>
-
-      <div className="mt-6">
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-outline-variant"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-surface-container-lowest/80 text-on-surface-variant font-label">Or continue with</span>
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <button
-            type="button"
-            className="w-full bg-surface-container border border-outline-variant text-on-surface font-bold font-label rounded-lg px-4 py-3 hover:bg-surface-container-high transition-colors flex justify-center items-center gap-2"
-          >
-            <span className="material-symbols-outlined text-[18px]">domain</span>
-            Enterprise SSO (SAML)
-          </button>
-        </div>
-      </div>
     </>
   );
 }

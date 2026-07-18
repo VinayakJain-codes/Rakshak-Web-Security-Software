@@ -2,6 +2,7 @@ export enum UserRole {
   SUPER_ADMIN = 'SUPER_ADMIN',
   CLIENT_OWNER = 'CLIENT_OWNER',
   SUPERVISOR = 'SUPERVISOR',
+  GUARD = 'GUARD',
 }
 
 export type Permission = string;

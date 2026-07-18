@@ -18,6 +18,7 @@ export default function GuardDashboardPage() {
   
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [guardId, setGuardId] = useState<string | null>(null);
+  const [guardName, setGuardName] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
 
   // File upload state
@@ -26,6 +27,7 @@ export default function GuardDashboardPage() {
   // Issue raising state
   const [showIssueModal, setShowIssueModal] = useState(false);
   const [issueTitle, setIssueTitle] = useState('');
+  const [severity, setSeverity] = useState('HIGH');
 
   useEffect(() => {
     const fetchGuardData = async () => {
@@ -33,17 +35,16 @@ export default function GuardDashboardPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user?.email) return;
 
-        // Find the guard by email (assuming guard name/email maps to auth user)
-        // For demonstration, we just fetch the first guard in this tenant
+        // Fetch the actual logged-in guard using their ID
         const { data: guardData } = await supabase
           .from('guards')
-          .select('id')
-          .eq('tenant_id', tenantId)
-          .limit(1)
+          .select('id, name')
+          .eq('id', user.id)
           .single();
 
         if (guardData) {
           setGuardId(guardData.id);
+          setGuardName(guardData.name);
           
           const { data: schedData } = await supabase
             .from('guard_schedules')
@@ -62,6 +63,31 @@ export default function GuardDashboardPage() {
     
     fetchGuardData();
   }, [supabase, tenantId]);
+
+  // Subscription for notifications
+  useEffect(() => {
+    if (!guardId || !tenantId) return;
+    
+    const channel = supabase.channel(`guard_notifications_${guardId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'guard_notifications',
+          filter: `guard_id=eq.${guardId}`
+        },
+        (payload) => {
+          const newNotification = payload.new;
+          alert(`🚨 ${newNotification.title}: ${newNotification.message}`);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [guardId, tenantId, supabase]);
 
   const handleFileUpload = async (scheduleId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0 || !guardId) return;
@@ -83,16 +109,14 @@ export default function GuardDashboardPage() {
         console.warn('Storage upload failed, simulating successful check-in fallback', uploadError.message);
       }
 
-      const publicUrl = supabase.storage.from('guard-selfies').getPublicUrl(filePath).data.publicUrl;
-
       // Insert check-in record
       await supabase.from('guard_checkins').insert([{
         tenant_id: tenantId,
         guard_id: guardId,
         schedule_id: scheduleId,
-        photo_url: uploadError ? 'https://via.placeholder.com/150' : publicUrl, // Mock if storage isn't set up
-        lat: 28.6139, // Simulated GPS
-        lng: 77.2090
+        photo_url: uploadError ? 'https://via.placeholder.com/150' : filePath,
+        lat: null,
+        lng: null
       }]);
 
       // Update schedule as completed
@@ -109,15 +133,15 @@ export default function GuardDashboardPage() {
 
   const handleRaiseTicket = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!issueTitle) return;
+    if (!issueTitle || !guardName) return;
 
     try {
       await supabase.from('alerts').insert([{
         tenant_id: tenantId,
         type: issueTitle,
-        severity: 'HIGH',
-        guard_name: 'Current Guard', // Replace with actual guard name
-        location: 'Current Location',
+        severity: severity,
+        guard_name: guardName,
+        location: 'Location tracking disabled',
         acknowledged: false
       }]);
       alert('Alert raised successfully. Command Center has been notified.');
@@ -209,6 +233,18 @@ export default function GuardDashboardPage() {
               className="w-full bg-surface-container border border-outline-variant rounded-lg p-3 focus:border-error outline-none text-sm text-on-surface mb-4 h-24 resize-none" 
               placeholder="e.g. Intruder spotted at back gate" 
             />
+
+            <label className="block text-xs font-bold text-on-surface-variant mb-1">Severity</label>
+            <select
+              value={severity}
+              onChange={e => setSeverity(e.target.value)}
+              className="w-full bg-surface-container border border-outline-variant rounded-lg p-3 focus:border-error outline-none text-sm text-on-surface mb-4"
+            >
+              <option value="INFO">INFO - Minor Observation</option>
+              <option value="WARNING">WARNING - Suspicious Activity</option>
+              <option value="HIGH">HIGH - Urgent Assistance</option>
+              <option value="CRITICAL">CRITICAL - Immediate Danger</option>
+            </select>
             
             <div className="flex justify-end gap-3">
               <button type="button" onClick={() => setShowIssueModal(false)} className="px-4 py-2 rounded-lg font-bold text-sm text-on-surface-variant hover:bg-surface-container-high transition-colors">Cancel</button>

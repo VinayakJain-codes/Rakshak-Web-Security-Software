@@ -1,5 +1,12 @@
 export type GuardStatus = 'active' | 'pending' | 'critical' | 'completed';
 
+export interface Guard {
+  id: string;
+  name: string;
+  status: string;
+  tenant_id: string;
+}
+
 export interface GeoCoord {
   lng: number;
   lat: number;

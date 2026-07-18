@@ -44,7 +44,60 @@ export async function updateSession(request: NextRequest) {
                         request.nextUrl.pathname.startsWith('/api');
 
   if (!isPublicAsset) {
-    return new NextResponse('503 Service Unavailable. App is temporarily offline for maintenance.', { status: 503 });
+    if (!user && !isAuthRoute) {
+        const loginUrl = request.nextUrl.clone();
+        loginUrl.pathname = '/auth/login';
+        return NextResponse.redirect(loginUrl);
+    }
+    
+    // RBAC Routing logic
+    if (user) {
+        // Extract custom claims
+        const role = user.user_metadata?.role as UserRole;
+
+        if (!role) {
+            // Missing or unrecognized role - deny access
+            if (!isAuthRoute && !request.nextUrl.pathname.startsWith('/unauthorized')) {
+                return NextResponse.redirect(new URL('/unauthorized', request.url));
+            }
+        } else {
+            if (isAuthRoute || isRoot) {
+                // Redirect logged-in users away from login/root to their portal
+                const redirectUrl = request.nextUrl.clone();
+                switch (role) {
+                    case UserRole.SUPER_ADMIN:
+                        redirectUrl.pathname = '/admin/dashboard';
+                        break;
+                    case UserRole.CLIENT_OWNER:
+                        redirectUrl.pathname = '/org/dashboard';
+                        break;
+                    case UserRole.SUPERVISOR:
+                        redirectUrl.pathname = '/ops/dashboard';
+                        break;
+                    case UserRole.GUARD:
+                        redirectUrl.pathname = '/guard/dashboard';
+                        break;
+                    default:
+                        redirectUrl.pathname = '/unauthorized';
+                }
+                return NextResponse.redirect(redirectUrl);
+            }
+
+            // Boundary enforcement:
+            if (request.nextUrl.pathname.startsWith('/admin') && role !== UserRole.SUPER_ADMIN) {
+                return NextResponse.redirect(new URL('/unauthorized', request.url));
+            }
+            if (request.nextUrl.pathname.startsWith('/org') && role !== UserRole.CLIENT_OWNER && role !== UserRole.SUPER_ADMIN) {
+                return NextResponse.redirect(new URL('/unauthorized', request.url));
+            }
+            if (request.nextUrl.pathname.startsWith('/ops') && role !== UserRole.SUPERVISOR && role !== UserRole.SUPER_ADMIN) {
+                return NextResponse.redirect(new URL('/unauthorized', request.url));
+            }
+            if (request.nextUrl.pathname.startsWith('/guard') && role !== UserRole.GUARD) {
+                return NextResponse.redirect(new URL('/unauthorized', request.url));
+            }
+        }
+    }
   }
 
   return supabaseResponse;
