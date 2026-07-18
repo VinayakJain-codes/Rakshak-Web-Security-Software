@@ -37,17 +37,6 @@ export function useGuardPositions(tenantId: string | null) {
               siteId: row.site_id || '',
               shiftStart: row.shift_start ? new Date(row.shift_start).getTime() : Date.now(),
               shiftEnd: row.shift_end ? new Date(row.shift_end).getTime() : null,
-              telemetry: row.telemetry || {
-                biometricVector: 'N/A',
-                gpsCoordinates: position,
-                networkEpochTime: Date.now(),
-                accelerometerVector: [0, 0, 0],
-                ambientBrightness: 0,
-                rootDetectionStatus: 'unknown',
-                batteryLevel: 100,
-                signalStrength: 0,
-                lastSyncedAt: Date.now(),
-              },
               avatarUrl: row.avatar_url || undefined,
             };
           });

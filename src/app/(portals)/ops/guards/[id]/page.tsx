@@ -61,7 +61,7 @@ export default function GuardProfilePage() {
         }));
         setCheckins(processedCheckins);
 
-        const { data: bioData } = await supabase.from('guard_biometrics').select('*').eq('guard_id', guardId).order('timestamp', { ascending: false }).limit(1).single();
+        const { data: bioData } = await supabase.from('guard_biometrics').select('*').eq('guard_id', guardId).order('timestamp', { ascending: false }).limit(1).maybeSingle();
         setBiometrics(bioData || null);
       } catch (err) {
         console.error('Error loading guard data:', err);

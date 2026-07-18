@@ -62,10 +62,10 @@ export const OPS_NAV_ITEMS: NavItem[] = [
     icon: 'speed',
   },
   {
-    label: 'Live Guard Tracker',
-    labelHi: 'लाइव गार्ड ट्रैकर',
-    href: '/ops/tracker',
-    icon: 'radar',
+    label: 'Guards Roster',
+    labelHi: 'गार्ड रोस्टर',
+    href: '/ops/guards',
+    icon: 'group',
   },
   {
     label: 'Pending Alert Stream',
@@ -81,6 +81,21 @@ export const OPS_NAV_ITEMS: NavItem[] = [
   },
 ];
 
+export const GUARD_NAV_ITEMS: NavItem[] = [
+  {
+    label: 'My Tasks',
+    labelHi: 'मेरे कार्य',
+    href: '/guard/dashboard',
+    icon: 'task_alt',
+  },
+  {
+    label: 'Duty Monitor',
+    labelHi: 'ड्यूटी मॉनिटर',
+    href: '/guard/monitor',
+    icon: 'camera_front',
+  },
+];
+
 export const getNavItemsByRole = (role: UserRole): NavItem[] => {
   switch (role) {
     case UserRole.SUPER_ADMIN:
@@ -89,6 +104,8 @@ export const getNavItemsByRole = (role: UserRole): NavItem[] => {
       return CLIENT_NAV_ITEMS;
     case UserRole.SUPERVISOR:
       return OPS_NAV_ITEMS;
+    case UserRole.GUARD:
+      return GUARD_NAV_ITEMS;
     default:
       return [];
   }

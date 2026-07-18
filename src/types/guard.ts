@@ -32,7 +32,6 @@ export interface GuardPin {
   siteId: string;
   shiftStart: number;
   shiftEnd: number | null;
-  telemetry: TelemetryPayload;
   avatarUrl?: string;
 }
 
