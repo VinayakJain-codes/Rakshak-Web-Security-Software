@@ -2,7 +2,7 @@
 
 -- Create a custom function to automatically extract the tenant_id from the active JWT
 CREATE OR REPLACE FUNCTION auth.tenant_id() RETURNS uuid AS $$
-  SELECT NULLIF(current_setting('request.jwt.claim.tenant_id', true), '')::uuid;
+  SELECT NULLIF(current_setting('request.jwt.claims', true)::jsonb->'app_metadata'->>'tenant_id', '')::uuid;
 $$ LANGUAGE sql STABLE;
 
 -- Ensure our schema extension allows creating policies easily
@@ -45,7 +45,7 @@ CREATE POLICY "Tenant Isolation: Guards Delete" ON public.guards
 
 -- (Optional) If Super Admins need to see everything, we can add a bypass policy based on role
 CREATE OR REPLACE FUNCTION auth.user_role() RETURNS text AS $$
-  SELECT NULLIF(current_setting('request.jwt.claim.role', true), '');
+  SELECT NULLIF(current_setting('request.jwt.claims', true)::jsonb->'app_metadata'->>'role', '');
 $$ LANGUAGE sql STABLE;
 
 CREATE POLICY "Super Admin Bypass" ON public.guards

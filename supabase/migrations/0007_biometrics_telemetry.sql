@@ -18,4 +18,7 @@ ALTER TABLE public.guard_biometrics ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Tenant Isolation: Guard Biometrics SELECT" ON public.guard_biometrics
   FOR SELECT USING (tenant_id = public.tenant_id() OR public.user_role() = 'SUPER_ADMIN');
 CREATE POLICY "Tenant Isolation: Guard Biometrics INSERT" ON public.guard_biometrics
-  FOR INSERT WITH CHECK (tenant_id = public.tenant_id() OR public.user_role() = 'SUPER_ADMIN');
+  FOR INSERT WITH CHECK (
+    (tenant_id = public.tenant_id() AND guard_id = auth.uid()) 
+    OR public.user_role() = 'SUPER_ADMIN'
+  );

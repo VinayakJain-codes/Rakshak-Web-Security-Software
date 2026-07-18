@@ -52,8 +52,8 @@ export async function updateSession(request: NextRequest) {
     
     // RBAC Routing logic
     if (user) {
-        // Extract custom claims
-        const role = user.user_metadata?.role as UserRole;
+        // Extract custom claims (securely via app_metadata injected by custom claims hook)
+        const role = user.app_metadata?.role as UserRole;
 
         if (!role) {
             // Missing or unrecognized role - deny access

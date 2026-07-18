@@ -20,20 +20,39 @@ function generatePassword() {
 export async function createGuardAccount(data: { name: string, email: string, tenantId: string, siteId?: string }) {
   const password = generatePassword();
   
-  // 1. Create auth user
+  // 1. Check capacity
+  const { data: tenant, error: tenantErr } = await supabaseAdmin.from('tenants').select('guard_capacity').eq('id', data.tenantId).single();
+  if (tenantErr || !tenant) return { error: 'Tenant not found' };
+
+  const { count, error: countErr } = await supabaseAdmin.from('guards').select('*', { count: 'exact', head: true }).eq('tenant_id', data.tenantId);
+  if (countErr) return { error: 'Failed to check capacity' };
+
+  if (count !== null && count >= tenant.guard_capacity) {
+    return { error: 'Guard capacity exceeded for this tenant' };
+  }
+
+  // 2. Create auth user
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email: data.email,
     password: password,
     email_confirm: true,
-    user_metadata: {
-      role: UserRole.GUARD,
-      tenant_id: data.tenantId,
-      name: data.name
-    }
+    user_metadata: { name: data.name } // Only non-secure metadata here
   });
 
   if (authError) {
     return { error: authError.message };
+  }
+
+  // 3. Insert secure profile
+  const { error: profileError } = await supabaseAdmin.from('profiles').insert([{
+    id: authData.user.id,
+    role: UserRole.GUARD,
+    tenant_id: data.tenantId
+  }]);
+
+  if (profileError) {
+    // Rollback could go here if needed
+    return { error: profileError.message };
   }
 
   // 2. Insert into guards table
@@ -61,7 +80,6 @@ export async function createClientOwnerAccount(data: { orgName: string, ownerEma
     password: password,
     email_confirm: true,
     user_metadata: {
-      role: UserRole.CLIENT_OWNER,
       name: data.orgName + ' Admin'
     }
   });
@@ -87,14 +105,16 @@ export async function createClientOwnerAccount(data: { orgName: string, ownerEma
 
   const tenantId = tenantData.id;
 
-  // Update user with tenant_id
-  await supabaseAdmin.auth.admin.updateUserById(authData.user.id, {
-    user_metadata: {
-      role: UserRole.CLIENT_OWNER,
-      tenant_id: tenantId,
-      name: data.orgName + ' Admin'
-    }
-  });
+  // Create secure profile
+  const { error: profileError } = await supabaseAdmin.from('profiles').insert([{
+    id: authData.user.id,
+    role: UserRole.CLIENT_OWNER,
+    tenant_id: tenantId
+  }]);
+
+  if (profileError) {
+    return { error: profileError.message };
+  }
 
   return { password, email: data.ownerEmail, tenantId };
 }

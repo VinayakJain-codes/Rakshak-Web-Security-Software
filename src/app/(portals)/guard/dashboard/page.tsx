@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { createClient } from '../../../../utils/supabase/client';
 import { useAuth } from '../../../../providers/AuthProvider';
 import { StatusBadge } from '../../../../components/ui/rakshak/StatusBadge';
+import { FilesetResolver, FaceLandmarker } from '@mediapipe/tasks-vision';
 
 type Schedule = {
   id: string;
@@ -96,25 +97,58 @@ export default function GuardDashboardPage() {
     
     try {
       const file = e.target.files[0];
+
+      // 1. Client-Side AI Liveness & Eyes-Open Gate
+      const vision = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
+      );
+      const faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
+          delegate: "GPU"
+        },
+        outputFaceBlendshapes: true,
+        runningMode: "IMAGE",
+        numFaces: 1
+      });
+
+      // Load file into an image element for MediaPipe
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      await new Promise((resolve) => { img.onload = resolve; });
+
+      const results = faceLandmarker.detect(img);
+      if (!results.faceBlendshapes || results.faceBlendshapes.length === 0) {
+        throw new Error("No face detected in the photo. Check-in denied.");
+      }
+
+      const blendshapes = results.faceBlendshapes[0].categories;
+      const eyeBlinkLeft = blendshapes.find(b => b.categoryName === 'eyeBlinkLeft')?.score || 0;
+      const eyeBlinkRight = blendshapes.find(b => b.categoryName === 'eyeBlinkRight')?.score || 0;
+
+      if (eyeBlinkLeft > 0.5 || eyeBlinkRight > 0.5) {
+        throw new Error("Eyes appear closed or drowsy. Liveness check failed.");
+      }
+
+      // 2. Proceed with Upload
       const fileExt = file.name.split('.').pop();
       const fileName = `${guardId}-${Date.now()}.${fileExt}`;
       const filePath = `${tenantId}/${fileName}`;
       
-      // Upload to Storage (Assuming a bucket named 'guard-selfies' exists)
-      const { error: uploadError, data } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('guard-selfies')
         .upload(filePath, file);
 
       if (uploadError) {
-        console.warn('Storage upload failed, simulating successful check-in fallback', uploadError.message);
+        throw new Error(`Storage upload failed: ${uploadError.message}`);
       }
 
-      // Insert check-in record
+      // 3. Insert check-in record ONLY if upload succeeded
       await supabase.from('guard_checkins').insert([{
         tenant_id: tenantId,
         guard_id: guardId,
         schedule_id: scheduleId,
-        photo_url: uploadError ? 'https://via.placeholder.com/150' : filePath,
+        photo_url: filePath,
         lat: null,
         lng: null
       }]);
@@ -123,7 +157,7 @@ export default function GuardDashboardPage() {
       await supabase.from('guard_schedules').update({ is_completed: true }).eq('id', scheduleId);
       
       setSchedules(prev => prev.map(s => s.id === scheduleId ? { ...s, is_completed: true } : s));
-      alert('Check-in completed successfully!');
+      alert('Check-in verified and completed successfully!');
     } catch (err: any) {
       alert(`Error during check-in: ${err.message}`);
     } finally {
