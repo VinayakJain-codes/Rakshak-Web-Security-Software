@@ -44,42 +44,7 @@ export async function updateSession(request: NextRequest) {
                         request.nextUrl.pathname.startsWith('/api');
 
   if (!isPublicAsset) {
-    if (!user && !isAuthRoute) {
-        const loginUrl = request.nextUrl.clone();
-        loginUrl.pathname = '/auth/login';
-        return NextResponse.redirect(loginUrl);
-    }
-    
-    // RBAC Routing logic
-    if (user) {
-        // Extract custom claims (we assume role and tenant_id are stored in user_metadata or app_metadata depending on implementation, here we'll use user_metadata for MVP simulation)
-        const role = (user.user_metadata?.role as UserRole) || UserRole.SUPERVISOR; // Default fallback for safety
-
-        if (isAuthRoute || isRoot) {
-            // Redirect logged-in users away from login/root to their portal
-            const redirectUrl = request.nextUrl.clone();
-            switch (role) {
-                case UserRole.SUPER_ADMIN:
-                    redirectUrl.pathname = '/admin/dashboard';
-                    break;
-                case UserRole.CLIENT_OWNER:
-                    redirectUrl.pathname = '/org/dashboard';
-                    break;
-                case UserRole.SUPERVISOR:
-                    redirectUrl.pathname = '/ops/dashboard';
-                    break;
-            }
-            return NextResponse.redirect(redirectUrl);
-        }
-
-        // Boundary enforcement:
-        if (request.nextUrl.pathname.startsWith('/admin') && role !== UserRole.SUPER_ADMIN) {
-            return NextResponse.redirect(new URL('/unauthorized', request.url)); // Or route them back to their dashboard
-        }
-        if (request.nextUrl.pathname.startsWith('/org') && role !== UserRole.CLIENT_OWNER && role !== UserRole.SUPER_ADMIN) {
-            return NextResponse.redirect(new URL('/unauthorized', request.url));
-        }
-    }
+    return new NextResponse('503 Service Unavailable. App is temporarily offline for maintenance.', { status: 503 });
   }
 
   return supabaseResponse;

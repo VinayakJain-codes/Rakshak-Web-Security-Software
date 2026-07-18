@@ -1,7 +1,8 @@
+require('dotenv').config({ path: '.env.local' });
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = '***REMOVED***';
-const supabaseAnonKey = '***REMOVED***';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 // We will use the SUPER_ADMIN to insert all data so RLS policies don't block us, 
 // or since we are running as a direct script, we can login as the Super Admin first.
@@ -15,7 +16,7 @@ async function run() {
   console.log('Logging in as Super Admin to seed data...');
   const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
     email: 'admin@rakshak.in',
-    password: '***REMOVED***',
+    password: process.env.ADMIN_PASSWORD,
   });
 
   if (loginError) {

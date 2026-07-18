@@ -1,14 +1,15 @@
+require('dotenv').config({ path: '.env.local' });
 const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
-  '***REMOVED***',
-  '***REMOVED***'
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-async function signUp() {
+async function createTestUser() {
   const { data, error } = await supabase.auth.signUp({
-    email: 'admin@rakshak.in',
-    password: '***REMOVED***',
+    email: 'test@rakshak.in',
+    password: process.env.TEST_USER_PASSWORD,
   });
   
   if (error) {

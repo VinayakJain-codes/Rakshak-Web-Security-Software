@@ -1,7 +1,8 @@
+require('dotenv').config({ path: '.env.local' });
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = '***REMOVED***';
-const supabaseAnonKey = '***REMOVED***';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 // Create a client that persists the session in memory so we can log in and update the user
 const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -40,11 +41,11 @@ async function handleUser({ email, password, role, tenantId }) {
       if (!res1.error) {
         console.log(`Successfully logged in with target password for ${email}`);
       } else {
-        console.log(`Could not log in with target password: ${res1.error.message}. Trying fallback password (***REMOVED***)...`);
+        console.log(`Could not log in with target password: ${res1.error.message}. Trying fallback password...`);
         
         const res2 = await supabase.auth.signInWithPassword({
           email,
-          password: '***REMOVED***'
+          password: process.env.FALLBACK_PASSWORD
         });
 
         if (!res2.error) {
@@ -96,14 +97,14 @@ async function run() {
   // 1. Super Admin
   await handleUser({
     email: 'admin@rakshak.in',
-    password: '***REMOVED***',
+    password: process.env.ADMIN_PASSWORD,
     role: 'SUPER_ADMIN'
   });
 
   // 2. Client Owner
   await handleUser({
     email: 'client1@rakshak.in',
-    password: '***REMOVED***',
+    password: process.env.CLIENT_PASSWORD,
     role: 'CLIENT_OWNER',
     tenantId
   });
@@ -111,7 +112,7 @@ async function run() {
   // 3. Supervisor
   await handleUser({
     email: 'supervisor@rakshak.in',
-    password: '***REMOVED***',
+    password: process.env.SUPERVISOR_PASSWORD,
     role: 'SUPERVISOR',
     tenantId
   });
